@@ -157,6 +157,13 @@ ENV/
 env.bak/
 venv.bak/
 
+# Dataset policy:
+# Keep source metadata in Git, but do not commit raw third-party documents
+# until redistribution rights are explicitly verified.
+data/raw/**/*
+!data/raw/**/
+!data/raw/**/.gitkeep
+
 # Spyder project settings
 .spyderproject
 .spyproject
