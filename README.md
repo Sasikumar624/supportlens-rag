@@ -10,4 +10,5 @@ The project starts from a locked Phase 0 requirements document before implementa
 - [Phase 3 Document Loading](docs/phase-3-document-loading.md)
 - [Phase 4 Text Cleaning](docs/phase-4-text-cleaning.md)
 - [Phase 5 Structure Detection](docs/phase-5-structure-detection.md)
+- [Phase 6 Chunking](docs/phase-6-chunking.md)
 - [Full Project Plan](supportlens-rag-plan.md)
