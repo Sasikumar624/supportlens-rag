@@ -46,6 +46,9 @@ class Settings:
     qdrant_api_key: str | None
     qdrant_collection: str
     embedding_model: str
+    reranker_model: str
+    reranker_candidate_top_k: int
+    reranker_final_top_k: int
     llm_provider: str
     llm_model: str | None
     llm_model_type: str
@@ -72,6 +75,12 @@ def get_settings() -> Settings:
         qdrant_api_key=os.getenv("QDRANT_API_KEY") or None,
         qdrant_collection=os.getenv("QDRANT_COLLECTION", "supportlens_chunks"),
         embedding_model=os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5"),
+        reranker_model=os.getenv(
+            "RERANKER_MODEL",
+            "cross-encoder/ms-marco-MiniLM-L6-v2",
+        ),
+        reranker_candidate_top_k=_get_int("RERANKER_CANDIDATE_TOP_K", 15),
+        reranker_final_top_k=_get_int("RERANKER_FINAL_TOP_K", 5),
         llm_provider=os.getenv("LLM_PROVIDER", "local"),
         llm_model=os.getenv("LLM_MODEL") or "Qwen/Qwen2.5-1.5B-Instruct",
         llm_model_type=os.getenv("LLM_MODEL_TYPE", "causal"),

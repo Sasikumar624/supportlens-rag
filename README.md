@@ -24,4 +24,5 @@ The project starts from a locked Phase 0 requirements document before implementa
 - [Phase 17 Local Hugging Face LLM](docs/phase-17-local-hugging-face-llm.md)
 - [Phase 18 No-Answer Handling](docs/phase-18-no-answer-handling.md)
 - [Phase 19 Citations](docs/phase-19-citations.md)
+- [Phase 20 Reranking](docs/phase-20-reranking.md)
 - [Full Project Plan](supportlens-rag-plan.md)

@@ -130,6 +130,11 @@ class RetrievalResult:
         return _payload_string(self.payload, "text") or ""
 
     @property
+    def rerank_score(self) -> float | None:
+        value = self.payload.get("rerank_score")
+        return float(value) if isinstance(value, int | float) else None
+
+    @property
     def citation_label(self) -> str:
         parts = [
             value

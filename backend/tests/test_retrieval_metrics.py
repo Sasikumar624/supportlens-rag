@@ -3,7 +3,7 @@ from app.evaluation.metrics import (
     calculate_retrieval_metrics,
     evaluate_retrieval_results,
 )
-from app.evaluation.retrieval_eval import run_retrieval_evaluation
+from app.evaluation.retrieval_eval import compare_retrievers, run_retrieval_evaluation
 from app.rag.retriever import RetrievalResult
 
 
@@ -109,6 +109,25 @@ def test_run_retrieval_evaluation_calls_retriever_for_each_question() -> None:
     assert report.question_evaluations[0].first_relevant_rank == 1
     assert report.question_evaluations[1].first_relevant_rank == 2
     assert report.metrics.recall_at_3 == 1.0
+    assert report.elapsed_seconds is not None
+    assert report.elapsed_seconds >= 0.0
+
+
+def test_compare_retrievers_reports_baseline_and_candidate_metrics() -> None:
+    questions = [question("Q1", "reset", ["DOC003"])]
+    baseline = FakeRetriever({"reset": [result("DOC001"), result("DOC003")]})
+    candidate = FakeRetriever({"reset": [result("DOC003"), result("DOC001")]})
+
+    report = compare_retrievers(
+        questions,
+        baseline_retriever=baseline,
+        candidate_retriever=candidate,
+    )
+
+    assert report.baseline.metrics.mrr == 0.5
+    assert report.candidate.metrics.mrr == 1.0
+    assert report.baseline.elapsed_seconds is not None
+    assert report.candidate.elapsed_seconds is not None
 
 
 def test_retrieval_metrics_reject_empty_inputs() -> None:
