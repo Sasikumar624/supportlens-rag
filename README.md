@@ -13,4 +13,5 @@ The project starts from a locked Phase 0 requirements document before implementa
 - [Phase 6 Chunking](docs/phase-6-chunking.md)
 - [Phase 7 Chunk Metadata](docs/phase-7-chunk-metadata.md)
 - [Phase 8 Embeddings](docs/phase-8-embeddings.md)
+- [Phase 9 Qdrant Local Setup](docs/phase-9-qdrant-local-setup.md)
 - [Full Project Plan](supportlens-rag-plan.md)
