@@ -52,6 +52,8 @@ class Settings:
     llm_max_new_tokens: int
     llm_temperature: float
     llm_do_sample: bool
+    no_answer_min_score: float
+    no_answer_min_context_chars: int
 
 
 @lru_cache(maxsize=1)
@@ -76,4 +78,6 @@ def get_settings() -> Settings:
         llm_max_new_tokens=_get_int("LLM_MAX_NEW_TOKENS", 256),
         llm_temperature=_get_float("LLM_TEMPERATURE", 0.0),
         llm_do_sample=_get_bool("LLM_DO_SAMPLE", False),
+        no_answer_min_score=_get_float("NO_ANSWER_MIN_SCORE", 0.35),
+        no_answer_min_context_chars=_get_int("NO_ANSWER_MIN_CONTEXT_CHARS", 30),
     )

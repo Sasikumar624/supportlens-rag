@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Protocol
 
+from app.core.config import get_settings
 from app.rag.retriever import MetadataFilter, RetrievalResult
 
 
@@ -67,6 +68,8 @@ class GeneratedAnswer:
     answer: str
     sources: list[SourceCitation]
     context_chunks: list[RetrievalResult]
+    refused: bool = False
+    no_answer_reason: str | None = None
 
 
 @dataclass(frozen=True)
@@ -76,6 +79,36 @@ class PromptConfig:
     def __post_init__(self) -> None:
         if self.max_context_chunks <= 0:
             raise ValueError("max_context_chunks must be positive")
+
+
+DEFAULT_NO_ANSWER_RESPONSE = (
+    "I could not find information relevant to that question in the available "
+    "technical-support documentation."
+)
+
+
+@dataclass(frozen=True)
+class NoAnswerConfig:
+    enabled: bool = True
+    min_context_score: float | None = 0.35
+    min_context_chars: int = 30
+    response: str = DEFAULT_NO_ANSWER_RESPONSE
+
+    def __post_init__(self) -> None:
+        if self.min_context_score is not None and self.min_context_score < 0:
+            raise ValueError("min_context_score cannot be negative")
+        if self.min_context_chars < 0:
+            raise ValueError("min_context_chars cannot be negative")
+        if not self.response.strip():
+            raise ValueError("response cannot be empty")
+
+    @classmethod
+    def from_settings(cls) -> "NoAnswerConfig":
+        settings = get_settings()
+        return cls(
+            min_context_score=settings.no_answer_min_score,
+            min_context_chars=settings.no_answer_min_context_chars,
+        )
 
 
 class UnsupportedLLMClient:
@@ -93,10 +126,12 @@ class RAGPipeline:
         retriever: Retriever,
         llm_client: LLMClient | None = None,
         prompt_config: PromptConfig | None = None,
+        no_answer_config: NoAnswerConfig | None = None,
     ) -> None:
         self._retriever = retriever
         self._llm_client = llm_client or UnsupportedLLMClient()
         self._prompt_config = prompt_config or PromptConfig()
+        self._no_answer_config = no_answer_config or NoAnswerConfig()
 
     def answer(
         self,
@@ -112,6 +147,17 @@ class RAGPipeline:
             metadata_filter=metadata_filter,
         )
         context_chunks = retrieved[: self._prompt_config.max_context_chunks]
+        no_answer_reason = _no_answer_reason(context_chunks, self._no_answer_config)
+        if no_answer_reason is not None:
+            return GeneratedAnswer(
+                question=question,
+                answer=self._no_answer_config.response,
+                sources=[],
+                context_chunks=context_chunks,
+                refused=True,
+                no_answer_reason=no_answer_reason,
+            )
+
         prompt = build_grounded_prompt(question, context_chunks)
         answer = self._llm_client.generate(prompt)
         sources = [
@@ -147,7 +193,7 @@ def build_grounded_prompt(
             "Answer rules:",
             "- Use only the supplied support context.",
             "- Do not invent unsupported facts.",
-            "- If the context is insufficient, say that the available documentation does not contain enough information.",
+            "- If the context is insufficient or irrelevant, say that you could not find relevant information in the available technical-support documentation.",
             "- Prefer concise, practical support steps.",
             "- Preserve warnings, cautions, and important notes.",
             "- Cite supporting sources using bracketed source numbers like [1].",
@@ -174,3 +220,24 @@ def _format_context_chunk(index: int, result: RetrievalResult) -> str:
     ]
     header = " | ".join(value for value in metadata if value)
     return f"{header}\n{result.text}"
+
+
+def _no_answer_reason(
+    context_chunks: list[RetrievalResult],
+    config: NoAnswerConfig,
+) -> str | None:
+    if not config.enabled:
+        return None
+    if not context_chunks:
+        return "no_context"
+
+    total_context_chars = sum(len(result.text.strip()) for result in context_chunks)
+    if total_context_chars < config.min_context_chars:
+        return "insufficient_context"
+
+    if config.min_context_score is not None:
+        best_score = max(result.score for result in context_chunks)
+        if best_score < config.min_context_score:
+            return "low_relevance"
+
+    return None

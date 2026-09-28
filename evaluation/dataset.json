@@ -164,5 +164,125 @@
       }
     ],
     "notes": "Comparison-style seed across setup and firmware sources."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_013",
+    "question": "Who won yesterday's football match?",
+    "category": "out_of_domain",
+    "answerable": false,
+    "expected_evidence": [],
+    "notes": "Sports result question should be refused as outside support documentation."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_014",
+    "question": "What is the current price of Bitcoin?",
+    "category": "out_of_domain",
+    "answerable": false,
+    "expected_evidence": [],
+    "notes": "Financial market question should not be answered from router docs."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_015",
+    "question": "Can you book a hotel room for me tonight?",
+    "category": "out_of_domain",
+    "answerable": false,
+    "expected_evidence": [],
+    "notes": "Task request outside the indexed technical-support scope."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_016",
+    "question": "What is the warranty expiration date for my personal router?",
+    "category": "unanswerable",
+    "answerable": false,
+    "expected_evidence": [],
+    "notes": "Requires user-specific warranty records not present in documentation."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_017",
+    "question": "What is my ISP account password?",
+    "category": "unanswerable",
+    "answerable": false,
+    "expected_evidence": [],
+    "notes": "Personal credential question should be refused."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_018",
+    "question": "Which stock should I buy this week?",
+    "category": "out_of_domain",
+    "answerable": false,
+    "expected_evidence": [],
+    "notes": "Investment advice is outside technical-support documentation."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_019",
+    "question": "What is the exact Wi-Fi password printed on my device label?",
+    "category": "unanswerable",
+    "answerable": false,
+    "expected_evidence": [],
+    "notes": "Device-specific secret is not available in generic docs."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_020",
+    "question": "How many support tickets did my company open last month?",
+    "category": "unanswerable",
+    "answerable": false,
+    "expected_evidence": [],
+    "notes": "Requires private operational data, not indexed documentation."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_021",
+    "question": "What is the best recipe for chocolate cake?",
+    "category": "out_of_domain",
+    "answerable": false,
+    "expected_evidence": [],
+    "notes": "Cooking question should be refused."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_022",
+    "question": "Who is the current president of France?",
+    "category": "out_of_domain",
+    "answerable": false,
+    "expected_evidence": [],
+    "notes": "Current-events knowledge is outside the indexed docs."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_023",
+    "question": "What is the serial number of my router?",
+    "category": "unanswerable",
+    "answerable": false,
+    "expected_evidence": [],
+    "notes": "Device-specific identifier is unavailable without user-provided data."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_024",
+    "question": "Can you summarize my latest email from the ISP?",
+    "category": "unanswerable",
+    "answerable": false,
+    "expected_evidence": [],
+    "notes": "Requires private email content not in the support corpus."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_025",
+    "question": "What firmware version is installed on my router right now?",
+    "category": "unanswerable",
+    "answerable": false,
+    "expected_evidence": [],
+    "notes": "Requires live device state, not static documentation."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_026",
+    "question": "Translate this router manual into Japanese.",
+    "category": "out_of_domain",
+    "answerable": false,
+    "expected_evidence": [],
+    "notes": "Transformation request is outside the current retrieval-answering scope."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_027",
+    "question": "What time does the nearest electronics store close today?",
+    "category": "out_of_domain",
+    "answerable": false,
+    "expected_evidence": [],
+    "notes": "Local business-hours question should not be answered from support docs."
   }
 ]

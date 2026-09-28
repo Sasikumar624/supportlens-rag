@@ -1,4 +1,6 @@
 from app.rag.generator import (
+    DEFAULT_NO_ANSWER_RESPONSE,
+    NoAnswerConfig,
     PromptConfig,
     RAGPipeline,
     UnsupportedLLMClient,
@@ -109,6 +111,7 @@ def test_rag_pipeline_limits_context_chunks() -> None:
         retriever=ManyResultsRetriever(),
         llm_client=llm,
         prompt_config=PromptConfig(max_context_chunks=2),
+        no_answer_config=NoAnswerConfig(min_context_chars=1),
     )
 
     answer = pipeline.answer("Question?")
@@ -117,6 +120,96 @@ def test_rag_pipeline_limits_context_chunks() -> None:
     assert "Context 1" in llm.prompts[0]
     assert "Context 2" in llm.prompts[0]
     assert "Context 3" not in llm.prompts[0]
+
+
+def test_rag_pipeline_refuses_when_no_context_is_retrieved() -> None:
+    class EmptyRetriever(FakeRetriever):
+        def retrieve(self, query: str, *, metadata_filter=None):
+            self.calls.append((query, metadata_filter))
+            return []
+
+    llm = FakeLLMClient()
+    pipeline = RAGPipeline(retriever=EmptyRetriever(), llm_client=llm)
+
+    answer = pipeline.answer("Who won yesterday's football match?")
+
+    assert answer.refused is True
+    assert answer.no_answer_reason == "no_context"
+    assert answer.answer == DEFAULT_NO_ANSWER_RESPONSE
+    assert answer.sources == []
+    assert llm.prompts == []
+
+
+def test_rag_pipeline_refuses_low_relevance_context_before_generation() -> None:
+    class LowScoreRetriever(FakeRetriever):
+        def retrieve(self, query: str, *, metadata_filter=None):
+            return [
+                RetrievalResult(
+                    point_id="point-low",
+                    score=0.12,
+                    payload={
+                        "chunk_id": "DOC_TEST_C0002",
+                        "text": "This support article explains how to mount a router.",
+                    },
+                )
+            ]
+
+    llm = FakeLLMClient()
+    pipeline = RAGPipeline(
+        retriever=LowScoreRetriever(),
+        llm_client=llm,
+        no_answer_config=NoAnswerConfig(min_context_score=0.5),
+    )
+
+    answer = pipeline.answer("What was the score in the football match?")
+
+    assert answer.refused is True
+    assert answer.no_answer_reason == "low_relevance"
+    assert llm.prompts == []
+
+
+def test_rag_pipeline_refuses_when_context_is_too_thin() -> None:
+    class ThinContextRetriever(FakeRetriever):
+        def retrieve(self, query: str, *, metadata_filter=None):
+            return [
+                RetrievalResult(
+                    point_id="point-thin",
+                    score=0.9,
+                    payload={"chunk_id": "DOC_TEST_C0003", "text": "Reset."},
+                )
+            ]
+
+    llm = FakeLLMClient()
+    pipeline = RAGPipeline(
+        retriever=ThinContextRetriever(),
+        llm_client=llm,
+        no_answer_config=NoAnswerConfig(min_context_chars=20),
+    )
+
+    answer = pipeline.answer("How do I reset the router?")
+
+    assert answer.refused is True
+    assert answer.no_answer_reason == "insufficient_context"
+    assert llm.prompts == []
+
+
+def test_rag_pipeline_can_disable_no_answer_gate_for_experiments() -> None:
+    class EmptyRetriever(FakeRetriever):
+        def retrieve(self, query: str, *, metadata_filter=None):
+            return []
+
+    llm = FakeLLMClient()
+    pipeline = RAGPipeline(
+        retriever=EmptyRetriever(),
+        llm_client=llm,
+        no_answer_config=NoAnswerConfig(enabled=False),
+    )
+
+    answer = pipeline.answer("Question?")
+
+    assert answer.refused is False
+    assert answer.answer == "Hold the reset button for ten seconds. [1]"
+    assert len(llm.prompts) == 1
 
 
 def test_generation_validates_empty_question_and_missing_llm() -> None:
@@ -142,3 +235,17 @@ def test_generation_validates_empty_question_and_missing_llm() -> None:
         assert "max_context_chunks" in str(error)
     else:
         raise AssertionError("Expected prompt config validation error")
+
+    try:
+        NoAnswerConfig(min_context_score=-0.1)
+    except ValueError as error:
+        assert "min_context_score" in str(error)
+    else:
+        raise AssertionError("Expected no-answer score validation error")
+
+    try:
+        NoAnswerConfig(min_context_chars=-1)
+    except ValueError as error:
+        assert "min_context_chars" in str(error)
+    else:
+        raise AssertionError("Expected no-answer context validation error")
