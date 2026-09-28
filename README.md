@@ -16,4 +16,5 @@ The project starts from a locked Phase 0 requirements document before implementa
 - [Phase 9 Qdrant Local Setup](docs/phase-9-qdrant-local-setup.md)
 - [Phase 10 Indexing Pipeline](docs/phase-10-indexing-pipeline.md)
 - [Phase 11 Basic Dense Retrieval](docs/phase-11-basic-dense-retrieval.md)
+- [Phase 12 Evaluation Dataset](docs/phase-12-evaluation-dataset.md)
 - [Full Project Plan](supportlens-rag-plan.md)

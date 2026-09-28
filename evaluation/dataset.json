@@ -1,0 +1,168 @@
+[
+  {
+    "question_id": "EVAL_OPENWRT_001",
+    "question": "What are the basic first steps for starting an OpenWrt installation?",
+    "category": "setup",
+    "answerable": true,
+    "expected_evidence": [
+      {
+        "document_id": "DOC001",
+        "section": "Quick start guide",
+        "required_terms": ["OpenWrt", "installation"]
+      }
+    ],
+    "notes": "Smoke-test setup question for the quick start source."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_002",
+    "question": "What should I check when an OpenWrt router has no internet connectivity?",
+    "category": "troubleshooting",
+    "answerable": true,
+    "expected_evidence": [
+      {
+        "document_id": "DOC002",
+        "section": "Internet connectivity",
+        "required_terms": ["connectivity", "troubleshooting"]
+      }
+    ],
+    "notes": "Basic troubleshooting retrieval question."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_003",
+    "question": "How do I use failsafe mode to recover or reset an OpenWrt device?",
+    "category": "procedure",
+    "answerable": true,
+    "expected_evidence": [
+      {
+        "document_id": "DOC003",
+        "section": "Failsafe mode",
+        "required_terms": ["failsafe", "reset"]
+      }
+    ],
+    "notes": "Procedure question for reset and recovery evidence."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_004",
+    "question": "Where should I look for guidance on configuring Wi-Fi in OpenWrt?",
+    "category": "configuration",
+    "answerable": true,
+    "expected_evidence": [
+      {
+        "document_id": "DOC004",
+        "section": "Wi-Fi configuration",
+        "required_terms": ["Wi-Fi", "configuration"]
+      }
+    ],
+    "notes": "Configuration category seed question."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_005",
+    "question": "How do I upgrade OpenWrt firmware using LuCI?",
+    "category": "procedure",
+    "answerable": true,
+    "expected_evidence": [
+      {
+        "document_id": "DOC005",
+        "section": "sysupgrade",
+        "required_terms": ["LuCI", "firmware", "upgrade"]
+      }
+    ],
+    "notes": "Firmware upgrade procedure question."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_006",
+    "question": "Which source should explain OpenWrt WAN or LAN connectivity checks?",
+    "category": "simple_factual",
+    "answerable": true,
+    "expected_evidence": [
+      {
+        "document_id": "DOC002",
+        "section": "checks and troubleshooting",
+        "required_terms": ["WAN", "LAN"]
+      }
+    ],
+    "notes": "Simple factual source-location question."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_007",
+    "question": "What OpenWrt documentation mentions factory reset and recovery mode together?",
+    "category": "exact_term",
+    "answerable": true,
+    "expected_evidence": [
+      {
+        "document_id": "DOC003",
+        "section": "factory reset",
+        "required_terms": ["factory reset", "recovery mode"]
+      }
+    ],
+    "notes": "Exact technical phrase retrieval question."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_008",
+    "question": "What should I review before changing wireless settings and troubleshooting connectivity?",
+    "category": "multi_document",
+    "answerable": true,
+    "expected_evidence": [
+      {
+        "document_id": "DOC004",
+        "section": "Wi-Fi configuration",
+        "required_terms": ["wireless", "Wi-Fi"]
+      },
+      {
+        "document_id": "DOC002",
+        "section": "troubleshooting",
+        "required_terms": ["connectivity", "troubleshooting"]
+      }
+    ],
+    "notes": "Seed multi-document question spanning configuration and troubleshooting."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_009",
+    "question": "What information should I find across a firmware upgrade procedure before applying an OpenWrt sysupgrade?",
+    "category": "multi_chunk",
+    "answerable": true,
+    "expected_evidence": [
+      {
+        "document_id": "DOC005",
+        "section": "sysupgrade",
+        "required_terms": ["sysupgrade", "firmware", "LuCI"]
+      }
+    ],
+    "notes": "Seed multi-chunk question for longer procedural retrieval."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_010",
+    "question": "What is the default administrator password for this specific OpenWrt device?",
+    "category": "unanswerable",
+    "answerable": false,
+    "expected_evidence": [],
+    "notes": "Should be refused unless specific evidence exists in the indexed sources."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_011",
+    "question": "Who won yesterday's cricket match?",
+    "category": "out_of_domain",
+    "answerable": false,
+    "expected_evidence": [],
+    "notes": "Out-of-domain no-answer seed question."
+  },
+  {
+    "question_id": "EVAL_OPENWRT_012",
+    "question": "Can OpenWrt documentation help me compare installation setup with firmware upgrade steps?",
+    "category": "multi_document",
+    "answerable": true,
+    "expected_evidence": [
+      {
+        "document_id": "DOC001",
+        "section": "installation",
+        "required_terms": ["installation", "OpenWrt"]
+      },
+      {
+        "document_id": "DOC005",
+        "section": "sysupgrade",
+        "required_terms": ["firmware", "upgrade"]
+      }
+    ],
+    "notes": "Comparison-style seed across setup and firmware sources."
+  }
+]
