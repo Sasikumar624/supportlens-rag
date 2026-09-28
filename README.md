@@ -30,4 +30,5 @@ The project starts from a locked Phase 0 requirements document before implementa
 - [Phase 23 Query Processing](docs/phase-23-query-processing.md)
 - [Phase 24 Prompt Construction](docs/phase-24-prompt-construction.md)
 - [Phase 25 Generation Evaluation](docs/phase-25-generation-evaluation.md)
+- [Phase 26 Baseline vs Improved System](docs/phase-26-baseline-vs-improved-system.md)
 - [Full Project Plan](supportlens-rag-plan.md)
