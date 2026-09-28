@@ -1,22 +1,10 @@
 from fastapi import APIRouter, Depends, status
-from pydantic import BaseModel, Field
 
 from app.api.dependencies import feedback_store
+from app.api.schemas import FeedbackRequest, FeedbackResponse
 
 
 router = APIRouter(prefix="/api")
-
-
-class FeedbackRequest(BaseModel):
-    question: str = Field(min_length=1)
-    answer: str = Field(min_length=1)
-    rating: int = Field(ge=1, le=5)
-    comment: str | None = None
-
-
-class FeedbackResponse(BaseModel):
-    feedback_id: int
-    status: str
 
 
 @router.post(

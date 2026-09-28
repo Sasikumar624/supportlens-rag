@@ -1,29 +1,16 @@
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel
 
 from app.api.dependencies import SOURCES_CSV
+from app.api.schemas import (
+    DocumentCreateRequest,
+    DocumentCreateResponse,
+    DocumentDeleteResponse,
+    DocumentResponse,
+)
 from app.ingestion.loaders import load_sources_csv
 
 
 router = APIRouter(prefix="/api/documents")
-
-
-class DocumentResponse(BaseModel):
-    document_id: str
-    title: str
-    category: str
-    product: str
-    version: str
-    language: str
-    source_url: str
-    source_type: str
-    raw_storage_policy: str
-
-
-class DocumentDeleteResponse(BaseModel):
-    document_id: str
-    deleted: bool
-    message: str
 
 
 @router.get("", response_model=list[DocumentResponse])
@@ -44,12 +31,19 @@ def list_documents() -> list[DocumentResponse]:
     ]
 
 
-@router.post("", status_code=status.HTTP_202_ACCEPTED)
-def create_document() -> dict[str, str]:
-    return {
-        "status": "accepted",
-        "message": "Document ingestion endpoint is reserved for Phase 27 API wiring.",
-    }
+@router.post(
+    "",
+    response_model=DocumentCreateResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def create_document(
+    payload: DocumentCreateRequest | None = None,
+) -> DocumentCreateResponse:
+    return DocumentCreateResponse(
+        status="accepted",
+        message="Document ingestion endpoint is reserved for Phase 27 API wiring.",
+        document_id=payload.document_id if payload is not None else None,
+    )
 
 
 @router.delete("/{document_id}", response_model=DocumentDeleteResponse)

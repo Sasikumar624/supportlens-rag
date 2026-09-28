@@ -68,6 +68,12 @@ def test_query_endpoint_returns_generated_answer_and_sources() -> None:
     assert body["answer"] == "Hold the reset button for ten seconds. [1]"
     assert body["refused"] is False
     assert body["sources"][0]["document_id"] == "DOC003"
+    assert body["sources"][0]["document"] == (
+        "Failsafe mode, factory reset, and recovery mode"
+    )
+    assert body["retrieval_time_ms"] is None
+    assert body["generation_time_ms"] is None
+    assert body["total_time_ms"] >= 0.0
     assert pipeline.calls == [
         (
             "How do I reset OpenWrt?",
@@ -135,7 +141,19 @@ def test_feedback_endpoint_stores_in_memory_feedback() -> None:
 
 
 def test_document_create_endpoint_is_reserved_for_ingestion() -> None:
-    response = client().post("/api/documents")
+    response = client().post(
+        "/api/documents",
+        json={
+            "document_id": "DOC_NEW",
+            "title": "New router guide",
+            "source_url": "https://example.com/router",
+            "product": "Router X",
+            "version": "v1",
+            "category": "setup",
+            "source_type": "html",
+        },
+    )
 
     assert response.status_code == 202
     assert response.json()["status"] == "accepted"
+    assert response.json()["document_id"] == "DOC_NEW"
