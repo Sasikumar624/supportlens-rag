@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Protocol
 
+from qdrant_client.models import FieldCondition, Filter, MatchValue
+
 from app.core.logging import get_logger
 from app.db.qdrant import QdrantCollectionConfig, get_qdrant_client
 from app.rag.embeddings import EmbeddingModel
@@ -22,6 +24,7 @@ class QdrantSearcher(Protocol):
         query: list[float],
         limit: int,
         with_payload: bool,
+        query_filter: Filter | None = None,
         score_threshold: float | None = None,
     ):
         ...
@@ -38,6 +41,45 @@ class DenseRetrievalConfig:
             raise ValueError("top_k must be positive")
         if self.score_threshold is not None and self.score_threshold < 0:
             raise ValueError("score_threshold cannot be negative")
+
+
+@dataclass(frozen=True)
+class MetadataFilter:
+    product: str | None = None
+    version: str | None = None
+    category: str | None = None
+    language: str | None = None
+    source_type: str | None = None
+    document_id: str | None = None
+
+    def __post_init__(self) -> None:
+        for field_name, value in self._items():
+            if value is not None and not value.strip():
+                raise ValueError(f"{field_name} filter cannot be empty")
+
+    @property
+    def is_empty(self) -> bool:
+        return all(value is None for _, value in self._items())
+
+    def to_qdrant_filter(self) -> Filter | None:
+        conditions = [
+            FieldCondition(key=field_name, match=MatchValue(value=value))
+            for field_name, value in self._items()
+            if value is not None
+        ]
+        if not conditions:
+            return None
+        return Filter(must=conditions)
+
+    def _items(self) -> tuple[tuple[str, str | None], ...]:
+        return (
+            ("product", self.product),
+            ("version", self.version),
+            ("category", self.category),
+            ("language", self.language),
+            ("source_type", self.source_type),
+            ("document_id", self.document_id),
+        )
 
 
 @dataclass(frozen=True)
@@ -117,11 +159,19 @@ class DenseRetriever:
             )
         )
 
-    def retrieve(self, query: str) -> list[RetrievalResult]:
+    def retrieve(
+        self,
+        query: str,
+        *,
+        metadata_filter: MetadataFilter | None = None,
+    ) -> list[RetrievalResult]:
         if not query.strip():
             raise ValueError("query cannot be empty")
 
         query_vector = self._embedder.embed_query(query)
+        qdrant_filter = (
+            metadata_filter.to_qdrant_filter() if metadata_filter is not None else None
+        )
         logger.info(
             "Running dense retrieval against %s with top_k=%s",
             self.config.collection.collection_name,
@@ -132,6 +182,7 @@ class DenseRetriever:
             query=query_vector,
             limit=self.config.top_k,
             with_payload=True,
+            query_filter=qdrant_filter,
             score_threshold=self.config.score_threshold,
         )
         return [_to_retrieval_result(point) for point in _response_points(response)]

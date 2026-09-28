@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from app.db.qdrant import QdrantCollectionConfig
-from app.rag.retriever import DenseRetrievalConfig, DenseRetriever
+from app.rag.retriever import DenseRetrievalConfig, DenseRetriever, MetadataFilter
 
 
 class FakeEmbedder:
@@ -36,6 +36,7 @@ class FakeQdrantClient:
         query: list[float],
         limit: int,
         with_payload: bool,
+        query_filter=None,
         score_threshold: float | None = None,
     ) -> FakeQueryResponse:
         self.calls.append(
@@ -44,6 +45,7 @@ class FakeQdrantClient:
                 "query": query,
                 "limit": limit,
                 "with_payload": with_payload,
+                "query_filter": query_filter,
                 "score_threshold": score_threshold,
             }
         )
@@ -96,6 +98,7 @@ def test_dense_retriever_embeds_query_and_searches_qdrant() -> None:
             "query": [0.1, 0.2, 0.3],
             "limit": 3,
             "with_payload": True,
+            "query_filter": None,
             "score_threshold": 0.5,
         }
     ]
@@ -105,6 +108,40 @@ def test_dense_retriever_embeds_query_and_searches_qdrant() -> None:
     assert results[0].chunk_id == "DOC_TEST_C0001"
     assert results[0].document_id == "DOC_TEST"
     assert results[0].text == "Hold the reset button for ten seconds."
+
+
+def test_dense_retriever_passes_metadata_filter_to_qdrant() -> None:
+    client = FakeQdrantClient()
+    retriever = DenseRetriever(
+        config(),
+        client=client,
+        embedder=FakeEmbedder(),
+    )
+
+    retriever.retrieve(
+        "How do I reset Router X?",
+        metadata_filter=MetadataFilter(product="Router X", category="troubleshooting"),
+    )
+
+    query_filter = client.calls[0]["query_filter"]
+    assert query_filter is not None
+    assert [condition.key for condition in query_filter.must] == ["product", "category"]
+    assert [condition.match.value for condition in query_filter.must] == [
+        "Router X",
+        "troubleshooting",
+    ]
+
+
+def test_metadata_filter_handles_empty_and_invalid_values() -> None:
+    assert MetadataFilter().is_empty is True
+    assert MetadataFilter().to_qdrant_filter() is None
+
+    try:
+        MetadataFilter(product=" ")
+    except ValueError as error:
+        assert "product" in str(error)
+    else:
+        raise AssertionError("Expected metadata filter validation error")
 
 
 def test_retrieval_result_builds_citation_label() -> None:

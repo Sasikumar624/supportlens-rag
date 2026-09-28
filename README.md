@@ -18,4 +18,6 @@ The project starts from a locked Phase 0 requirements document before implementa
 - [Phase 11 Basic Dense Retrieval](docs/phase-11-basic-dense-retrieval.md)
 - [Phase 12 Evaluation Dataset](docs/phase-12-evaluation-dataset.md)
 - [Phase 13 Retrieval Metrics](docs/phase-13-retrieval-metrics.md)
+- [Phase 14 Chunking Experiments](docs/phase-14-chunking-experiments.md)
+- [Phase 15 Metadata Filtering](docs/phase-15-metadata-filtering.md)
 - [Full Project Plan](supportlens-rag-plan.md)
