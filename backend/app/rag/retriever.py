@@ -135,6 +135,11 @@ class RetrievalResult:
         return float(value) if isinstance(value, int | float) else None
 
     @property
+    def keyword_score(self) -> float | None:
+        value = self.payload.get("keyword_score")
+        return float(value) if isinstance(value, int | float) else None
+
+    @property
     def citation_label(self) -> str:
         parts = [
             value

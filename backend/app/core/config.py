@@ -46,6 +46,8 @@ class Settings:
     qdrant_api_key: str | None
     qdrant_collection: str
     embedding_model: str
+    keyword_retrieval_top_k: int
+    keyword_retrieval_min_score: float
     reranker_model: str
     reranker_candidate_top_k: int
     reranker_final_top_k: int
@@ -75,6 +77,8 @@ def get_settings() -> Settings:
         qdrant_api_key=os.getenv("QDRANT_API_KEY") or None,
         qdrant_collection=os.getenv("QDRANT_COLLECTION", "supportlens_chunks"),
         embedding_model=os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5"),
+        keyword_retrieval_top_k=_get_int("KEYWORD_RETRIEVAL_TOP_K", 5),
+        keyword_retrieval_min_score=_get_float("KEYWORD_RETRIEVAL_MIN_SCORE", 0.0),
         reranker_model=os.getenv(
             "RERANKER_MODEL",
             "cross-encoder/ms-marco-MiniLM-L6-v2",

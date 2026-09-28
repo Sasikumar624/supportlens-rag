@@ -25,4 +25,5 @@ The project starts from a locked Phase 0 requirements document before implementa
 - [Phase 18 No-Answer Handling](docs/phase-18-no-answer-handling.md)
 - [Phase 19 Citations](docs/phase-19-citations.md)
 - [Phase 20 Reranking](docs/phase-20-reranking.md)
+- [Phase 21 Keyword Sparse Retrieval](docs/phase-21-keyword-sparse-retrieval.md)
 - [Full Project Plan](supportlens-rag-plan.md)
