@@ -58,6 +58,9 @@ class FakeQdrantClient:
                         "chunk_id": "DOC_TEST_C0001",
                         "document_id": "DOC_TEST",
                         "title": "Router Guide",
+                        "category": "troubleshooting",
+                        "product": "Router X",
+                        "version": "1.0",
                         "source_url": "https://example.com/router",
                         "page": 3,
                         "section": "Factory Reset",
@@ -107,6 +110,9 @@ def test_dense_retriever_embeds_query_and_searches_qdrant() -> None:
     assert results[0].score == 0.91
     assert results[0].chunk_id == "DOC_TEST_C0001"
     assert results[0].document_id == "DOC_TEST"
+    assert results[0].category == "troubleshooting"
+    assert results[0].product == "Router X"
+    assert results[0].version == "1.0"
     assert results[0].text == "Hold the reset button for ten seconds."
 
 

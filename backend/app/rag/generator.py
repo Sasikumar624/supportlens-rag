@@ -26,6 +26,9 @@ class SourceCitation:
     chunk_id: str | None
     document_id: str | None
     title: str | None
+    category: str | None
+    product: str | None
+    version: str | None
     page: int | None
     section: str | None
     source_url: str | None
@@ -42,6 +45,9 @@ class SourceCitation:
             chunk_id=result.chunk_id,
             document_id=result.document_id,
             title=result.title,
+            category=result.category,
+            product=result.product,
+            version=result.version,
             page=result.page,
             section=result.section,
             source_url=result.source_url,
@@ -61,6 +67,31 @@ class SourceCitation:
         ]
         return " - ".join(parts) if parts else self.chunk_id or f"Source {self.source_id}"
 
+    @property
+    def product_version(self) -> str | None:
+        if self.product and self.version:
+            return f"{self.product} {self.version}"
+        return self.product or self.version
+
+    @property
+    def display_text(self) -> str:
+        parts = [
+            value
+            for value in [
+                self.label,
+                self.product_version,
+                self.source_url,
+            ]
+            if value
+        ]
+        return " - ".join(parts)
+
+    @property
+    def markdown(self) -> str:
+        if self.source_url:
+            return f"[{self.label}]({self.source_url})"
+        return self.label
+
 
 @dataclass(frozen=True)
 class GeneratedAnswer:
@@ -70,6 +101,16 @@ class GeneratedAnswer:
     context_chunks: list[RetrievalResult]
     refused: bool = False
     no_answer_reason: str | None = None
+
+    @property
+    def answer_with_citations(self) -> str:
+        if self.refused or not self.sources:
+            return self.answer
+
+        source_lines = [
+            f"[{source.source_id}] {source.display_text}" for source in self.sources
+        ]
+        return "\n\n".join([self.answer, "Sources:\n" + "\n".join(source_lines)])
 
 
 @dataclass(frozen=True)
@@ -214,8 +255,12 @@ def _format_context_chunk(index: int, result: RetrievalResult) -> str:
         f"chunk_id={result.chunk_id}" if result.chunk_id else None,
         f"document_id={result.document_id}" if result.document_id else None,
         f"title={result.title}" if result.title else None,
+        f"category={result.category}" if result.category else None,
+        f"product={result.product}" if result.product else None,
+        f"version={result.version}" if result.version else None,
         f"page={result.page}" if result.page is not None else None,
         f"section={result.section}" if result.section else None,
+        f"source_url={result.source_url}" if result.source_url else None,
         f"score={result.score:.4f}",
     ]
     header = " | ".join(value for value in metadata if value)

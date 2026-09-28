@@ -28,6 +28,9 @@ class FakeRetriever:
                     "chunk_id": "DOC_TEST_C0001",
                     "document_id": "DOC_TEST",
                     "title": "Router Guide",
+                    "category": "troubleshooting",
+                    "product": "Router X",
+                    "version": "1.0",
                     "source_url": "https://example.com/router",
                     "page": 3,
                     "section": "Factory Reset",
@@ -57,6 +60,10 @@ def test_build_grounded_prompt_includes_rules_question_and_context() -> None:
                     "chunk_id": "DOC_TEST_C0001",
                     "document_id": "DOC_TEST",
                     "title": "Router Guide",
+                    "category": "troubleshooting",
+                    "product": "Router X",
+                    "version": "1.0",
+                    "source_url": "https://example.com/router",
                     "page": 3,
                     "section": "Factory Reset",
                     "text": "Hold the reset button for ten seconds.",
@@ -69,6 +76,10 @@ def test_build_grounded_prompt_includes_rules_question_and_context() -> None:
     assert "Do not invent unsupported facts" in prompt
     assert "How do I reset the router?" in prompt
     assert "Source [1]" in prompt
+    assert "category=troubleshooting" in prompt
+    assert "product=Router X" in prompt
+    assert "version=1.0" in prompt
+    assert "source_url=https://example.com/router" in prompt
     assert "Hold the reset button" in prompt
 
 
@@ -89,6 +100,15 @@ def test_rag_pipeline_retrieves_builds_prompt_and_returns_sources() -> None:
     assert answer.sources[0].source_id == 1
     assert answer.sources[0].chunk_id == "DOC_TEST_C0001"
     assert answer.sources[0].label == "Router Guide - Page 3 - Factory Reset"
+    assert answer.sources[0].product_version == "Router X 1.0"
+    assert answer.sources[0].markdown == (
+        "[Router Guide - Page 3 - Factory Reset](https://example.com/router)"
+    )
+    assert "Sources:\n[1] Router Guide - Page 3 - Factory Reset" in (
+        answer.answer_with_citations
+    )
+    assert "Router X 1.0" in answer.answer_with_citations
+    assert "https://example.com/router" in answer.answer_with_citations
 
 
 def test_rag_pipeline_limits_context_chunks() -> None:
@@ -136,6 +156,7 @@ def test_rag_pipeline_refuses_when_no_context_is_retrieved() -> None:
     assert answer.refused is True
     assert answer.no_answer_reason == "no_context"
     assert answer.answer == DEFAULT_NO_ANSWER_RESPONSE
+    assert answer.answer_with_citations == DEFAULT_NO_ANSWER_RESPONSE
     assert answer.sources == []
     assert llm.prompts == []
 

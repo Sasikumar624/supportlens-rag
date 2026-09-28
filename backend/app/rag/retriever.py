@@ -101,6 +101,18 @@ class RetrievalResult:
         return _payload_string(self.payload, "title")
 
     @property
+    def category(self) -> str | None:
+        return _payload_string(self.payload, "category")
+
+    @property
+    def product(self) -> str | None:
+        return _payload_string(self.payload, "product")
+
+    @property
+    def version(self) -> str | None:
+        return _payload_string(self.payload, "version")
+
+    @property
     def source_url(self) -> str | None:
         return _payload_string(self.payload, "source_url")
 

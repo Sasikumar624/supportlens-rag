@@ -22,4 +22,6 @@ The project starts from a locked Phase 0 requirements document before implementa
 - [Phase 15 Metadata Filtering](docs/phase-15-metadata-filtering.md)
 - [Phase 16 Basic LLM Generation](docs/phase-16-basic-llm-generation.md)
 - [Phase 17 Local Hugging Face LLM](docs/phase-17-local-hugging-face-llm.md)
+- [Phase 18 No-Answer Handling](docs/phase-18-no-answer-handling.md)
+- [Phase 19 Citations](docs/phase-19-citations.md)
 - [Full Project Plan](supportlens-rag-plan.md)
