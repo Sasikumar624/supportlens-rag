@@ -29,4 +29,5 @@ The project starts from a locked Phase 0 requirements document before implementa
 - [Phase 22 Hybrid Retrieval](docs/phase-22-hybrid-retrieval.md)
 - [Phase 23 Query Processing](docs/phase-23-query-processing.md)
 - [Phase 24 Prompt Construction](docs/phase-24-prompt-construction.md)
+- [Phase 25 Generation Evaluation](docs/phase-25-generation-evaluation.md)
 - [Full Project Plan](supportlens-rag-plan.md)
