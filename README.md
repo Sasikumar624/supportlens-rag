@@ -21,4 +21,5 @@ The project starts from a locked Phase 0 requirements document before implementa
 - [Phase 14 Chunking Experiments](docs/phase-14-chunking-experiments.md)
 - [Phase 15 Metadata Filtering](docs/phase-15-metadata-filtering.md)
 - [Phase 16 Basic LLM Generation](docs/phase-16-basic-llm-generation.md)
+- [Phase 17 Local Hugging Face LLM](docs/phase-17-local-hugging-face-llm.md)
 - [Full Project Plan](supportlens-rag-plan.md)

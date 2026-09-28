@@ -19,6 +19,13 @@ def _get_int(name: str, default: int) -> int:
     return int(value)
 
 
+def _get_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return float(value)
+
+
 def _get_list(name: str, default: list[str]) -> list[str]:
     value = os.getenv(name)
     if value is None or not value.strip():
@@ -41,6 +48,10 @@ class Settings:
     embedding_model: str
     llm_provider: str
     llm_model: str | None
+    llm_model_type: str
+    llm_max_new_tokens: int
+    llm_temperature: float
+    llm_do_sample: bool
 
 
 @lru_cache(maxsize=1)
@@ -60,5 +71,9 @@ def get_settings() -> Settings:
         qdrant_collection=os.getenv("QDRANT_COLLECTION", "supportlens_chunks"),
         embedding_model=os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5"),
         llm_provider=os.getenv("LLM_PROVIDER", "local"),
-        llm_model=os.getenv("LLM_MODEL") or None,
+        llm_model=os.getenv("LLM_MODEL") or "Qwen/Qwen2.5-1.5B-Instruct",
+        llm_model_type=os.getenv("LLM_MODEL_TYPE", "causal"),
+        llm_max_new_tokens=_get_int("LLM_MAX_NEW_TOKENS", 256),
+        llm_temperature=_get_float("LLM_TEMPERATURE", 0.0),
+        llm_do_sample=_get_bool("LLM_DO_SAMPLE", False),
     )
