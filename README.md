@@ -12,4 +12,5 @@ The project starts from a locked Phase 0 requirements document before implementa
 - [Phase 5 Structure Detection](docs/phase-5-structure-detection.md)
 - [Phase 6 Chunking](docs/phase-6-chunking.md)
 - [Phase 7 Chunk Metadata](docs/phase-7-chunk-metadata.md)
+- [Phase 8 Embeddings](docs/phase-8-embeddings.md)
 - [Full Project Plan](supportlens-rag-plan.md)
