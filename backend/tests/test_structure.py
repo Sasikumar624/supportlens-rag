@@ -64,7 +64,13 @@ def test_detect_structure_preserves_source_metadata() -> None:
     blocks = detect_structure(part)
 
     assert blocks[0].document_id == "DOC_TEST"
+    assert blocks[0].title == "Router Guide"
+    assert blocks[0].category == "troubleshooting"
+    assert blocks[0].product == "Router X"
+    assert blocks[0].version == "v1"
+    assert blocks[0].language == "English"
     assert blocks[0].source_url == "https://example.com/router"
+    assert blocks[0].source_type == "html"
     assert blocks[0].page is None
     assert blocks[0].block_id == "DOC_TEST_B0001"
 

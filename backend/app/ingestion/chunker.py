@@ -8,7 +8,13 @@ from app.ingestion.structure import BlockType, StructuredBlock
 class Chunk:
     chunk_id: str
     document_id: str
+    title: str
+    category: str
+    product: str
+    version: str
+    language: str
     source_url: str
+    source_type: str
     page: int | None
     section: str | None
     text: str
@@ -21,9 +27,16 @@ class Chunk:
         return {
             "chunk_id": self.chunk_id,
             "document_id": self.document_id,
+            "title": self.title,
+            "category": self.category,
+            "product": self.product,
+            "version": self.version,
+            "language": self.language,
             "source_url": self.source_url,
+            "source_type": self.source_type,
             "page": self.page,
             "section": self.section,
+            "text": self.text,
             "token_count": self.token_count,
             "block_ids": self.block_ids,
             "block_types": self.block_types,
@@ -90,7 +103,13 @@ def _append_chunk(chunks: list[Chunk], blocks: list[StructuredBlock]) -> None:
         Chunk(
             chunk_id=f"{first.document_id}_C{chunk_index:04d}",
             document_id=first.document_id,
+            title=first.title,
+            category=first.category,
+            product=first.product,
+            version=first.version,
+            language=first.language,
             source_url=first.source_url,
+            source_type=first.source_type,
             page=_first_non_none_page(blocks),
             section=_dominant_section(blocks),
             text=text,

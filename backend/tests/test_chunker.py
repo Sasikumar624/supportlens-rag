@@ -15,7 +15,13 @@ def block(
         section=section,
         page=1,
         document_id="DOC_TEST",
+        title="Router Guide",
+        category="setup",
+        product="Router X",
+        version="v1",
+        language="English",
         source_url="https://example.com/router",
+        source_type="html",
     )
 
 
@@ -31,11 +37,47 @@ def test_chunk_blocks_preserves_metadata_and_stable_ids() -> None:
     assert len(chunks) == 1
     assert chunks[0].chunk_id == "DOC_TEST_C0001"
     assert chunks[0].document_id == "DOC_TEST"
+    assert chunks[0].title == "Router Guide"
+    assert chunks[0].category == "setup"
+    assert chunks[0].product == "Router X"
+    assert chunks[0].version == "v1"
+    assert chunks[0].language == "English"
     assert chunks[0].source_url == "https://example.com/router"
+    assert chunks[0].source_type == "html"
     assert chunks[0].page == 1
     assert chunks[0].section == "Setup"
     assert chunks[0].block_ids == ["DOC_TEST_B0001", "DOC_TEST_B0002"]
     assert chunks[0].metadata["chunk_id"] == "DOC_TEST_C0001"
+
+
+def test_chunk_metadata_contains_qdrant_payload_fields() -> None:
+    chunks = chunk_blocks(
+        [
+            block(1, "Factory Reset", BlockType.HEADING, "Factory Reset"),
+            block(2, "Hold reset for ten seconds.", BlockType.PROCEDURE_STEP, "Factory Reset"),
+        ],
+        ChunkingConfig(target_tokens=50, overlap_blocks=0),
+    )
+
+    metadata = chunks[0].metadata
+
+    assert metadata == {
+        "chunk_id": "DOC_TEST_C0001",
+        "document_id": "DOC_TEST",
+        "title": "Router Guide",
+        "category": "setup",
+        "product": "Router X",
+        "version": "v1",
+        "language": "English",
+        "source_url": "https://example.com/router",
+        "source_type": "html",
+        "page": 1,
+        "section": "Factory Reset",
+        "text": "Factory Reset\n\nHold reset for ten seconds.",
+        "token_count": 7,
+        "block_ids": ["DOC_TEST_B0001", "DOC_TEST_B0002"],
+        "block_types": ["heading", "procedure_step"],
+    }
 
 
 def test_chunk_blocks_splits_when_target_size_is_exceeded() -> None:

@@ -23,7 +23,13 @@ class StructuredBlock:
     section: str | None
     page: int | None
     document_id: str
+    title: str
+    category: str
+    product: str
+    version: str
+    language: str
     source_url: str
+    source_type: str
 
 
 _PROCEDURE_STEP_PATTERN = re.compile(r"^\d+[.)]\s+")
@@ -49,7 +55,13 @@ def detect_structure(part: LoadedDocumentPart) -> list[StructuredBlock]:
                 section=current_section,
                 page=part.page,
                 document_id=part.document_id,
+                title=part.title,
+                category=part.category,
+                product=part.product,
+                version=part.version,
+                language=part.language,
                 source_url=part.source_url,
+                source_type=part.source_type,
             )
         )
 
