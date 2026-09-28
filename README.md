@@ -27,4 +27,5 @@ The project starts from a locked Phase 0 requirements document before implementa
 - [Phase 20 Reranking](docs/phase-20-reranking.md)
 - [Phase 21 Keyword Sparse Retrieval](docs/phase-21-keyword-sparse-retrieval.md)
 - [Phase 22 Hybrid Retrieval](docs/phase-22-hybrid-retrieval.md)
+- [Phase 23 Query Processing](docs/phase-23-query-processing.md)
 - [Full Project Plan](supportlens-rag-plan.md)
