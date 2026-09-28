@@ -135,8 +135,18 @@ class RetrievalResult:
         return float(value) if isinstance(value, int | float) else None
 
     @property
+    def dense_score(self) -> float | None:
+        value = self.payload.get("dense_score")
+        return float(value) if isinstance(value, int | float) else None
+
+    @property
     def keyword_score(self) -> float | None:
         value = self.payload.get("keyword_score")
+        return float(value) if isinstance(value, int | float) else None
+
+    @property
+    def hybrid_score(self) -> float | None:
+        value = self.payload.get("hybrid_score")
         return float(value) if isinstance(value, int | float) else None
 
     @property

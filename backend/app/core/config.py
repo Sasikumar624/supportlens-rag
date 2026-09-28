@@ -48,6 +48,8 @@ class Settings:
     embedding_model: str
     keyword_retrieval_top_k: int
     keyword_retrieval_min_score: float
+    hybrid_retrieval_top_k: int
+    hybrid_rrf_k: int
     reranker_model: str
     reranker_candidate_top_k: int
     reranker_final_top_k: int
@@ -79,6 +81,8 @@ def get_settings() -> Settings:
         embedding_model=os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5"),
         keyword_retrieval_top_k=_get_int("KEYWORD_RETRIEVAL_TOP_K", 5),
         keyword_retrieval_min_score=_get_float("KEYWORD_RETRIEVAL_MIN_SCORE", 0.0),
+        hybrid_retrieval_top_k=_get_int("HYBRID_RETRIEVAL_TOP_K", 10),
+        hybrid_rrf_k=_get_int("HYBRID_RRF_K", 60),
         reranker_model=os.getenv(
             "RERANKER_MODEL",
             "cross-encoder/ms-marco-MiniLM-L6-v2",
