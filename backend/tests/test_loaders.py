@@ -30,6 +30,9 @@ def test_load_sources_csv_reads_phase_2_registry() -> None:
     assert len(sources) == 5
     assert sources[0].document_id == "DOC001"
     assert sources[0].source_type == "html"
+    assert {source.source_type for source in sources} == {"html"}
+    assert sources[2].document_id == "DOC003"
+    assert sources[2].title == "Failsafe mode, factory reset, and recovery mode"
 
 
 def test_html_loader_preserves_metadata_and_extracts_text() -> None:

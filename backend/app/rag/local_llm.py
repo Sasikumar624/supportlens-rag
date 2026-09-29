@@ -5,7 +5,7 @@ from typing import Any
 from app.core.config import get_settings
 
 
-DEFAULT_LOCAL_LLM_MODEL = "Qwen/Qwen2.5-1.5B-Instruct"
+DEFAULT_LOCAL_LLM_MODEL = "google/flan-t5-base"
 
 
 class LocalLLMModelType(StrEnum):
@@ -16,7 +16,7 @@ class LocalLLMModelType(StrEnum):
 @dataclass(frozen=True)
 class LocalLLMConfig:
     model_name: str = DEFAULT_LOCAL_LLM_MODEL
-    model_type: LocalLLMModelType = LocalLLMModelType.CAUSAL
+    model_type: LocalLLMModelType = LocalLLMModelType.SEQ2SEQ
     max_new_tokens: int = 256
     temperature: float = 0.0
     do_sample: bool = False
