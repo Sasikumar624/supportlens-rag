@@ -1,8 +1,9 @@
 from pathlib import Path
 from typing import Any, Protocol
 
-from fastapi import HTTPException, Request, status
+from fastapi import Request
 
+from app.api.errors import ApiErrorCode, service_unavailable
 from app.rag.generator import GeneratedAnswer
 from app.rag.retriever import MetadataFilter
 
@@ -24,9 +25,9 @@ class QueryPipeline(Protocol):
 def query_pipeline(request: Request) -> QueryPipeline:
     pipeline = getattr(request.app.state, "query_pipeline", None)
     if pipeline is None:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Query pipeline is not configured.",
+        raise service_unavailable(
+            ApiErrorCode.QUERY_PIPELINE_UNAVAILABLE,
+            "Query pipeline is not configured.",
         )
     return pipeline
 

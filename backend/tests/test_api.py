@@ -38,6 +38,16 @@ class FakeQueryPipeline:
         )
 
 
+class FailingQueryPipeline:
+    def answer(
+        self,
+        question: str,
+        *,
+        metadata_filter: MetadataFilter | None = None,
+    ) -> GeneratedAnswer:
+        raise RuntimeError("LLM unavailable")
+
+
 def client() -> TestClient:
     return TestClient(app)
 
@@ -94,7 +104,62 @@ def test_query_endpoint_returns_service_unavailable_without_pipeline() -> None:
     )
 
     assert response.status_code == 503
-    assert response.json()["detail"] == "Query pipeline is not configured."
+    assert response.json()["detail"] == {
+        "code": "query_pipeline_unavailable",
+        "message": "Query pipeline is not configured.",
+    }
+
+
+def test_query_endpoint_returns_structured_validation_errors() -> None:
+    app.state.query_pipeline = FakeQueryPipeline()
+
+    empty_question = client().post(
+        "/api/query",
+        json={"question": "   "},
+    )
+    assert empty_question.status_code == 400
+    assert empty_question.json()["detail"] == {
+        "code": "empty_question",
+        "message": "Question cannot be empty.",
+        "field": "question",
+    }
+
+    long_question = client().post(
+        "/api/query",
+        json={"question": "x" * 2001},
+    )
+    assert long_question.status_code == 400
+    assert long_question.json()["detail"]["code"] == "question_too_long"
+
+    blank_metadata = client().post(
+        "/api/query",
+        json={"question": "How do I reset OpenWrt?", "product": "  "},
+    )
+    assert blank_metadata.status_code == 400
+    assert blank_metadata.json()["detail"] == {
+        "code": "invalid_metadata",
+        "message": "product cannot be blank.",
+        "field": "product",
+    }
+
+    del app.state.query_pipeline
+
+
+def test_query_endpoint_maps_pipeline_failures_to_service_unavailable() -> None:
+    app.state.query_pipeline = FailingQueryPipeline()
+
+    response = client().post(
+        "/api/query",
+        json={"question": "How do I reset OpenWrt?"},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == {
+        "code": "query_pipeline_failed",
+        "message": "LLM unavailable",
+    }
+
+    del app.state.query_pipeline
 
 
 def test_documents_endpoint_lists_source_registry() -> None:
@@ -110,15 +175,15 @@ def test_documents_endpoint_lists_source_registry() -> None:
 def test_document_delete_endpoint_is_safe_registry_placeholder() -> None:
     response = client().delete("/api/documents/DOC001")
 
-    assert response.status_code == 200
-    assert response.json() == {
-        "document_id": "DOC001",
-        "deleted": False,
+    assert response.status_code == 503
+    assert response.json()["detail"] == {
+        "code": "document_deletion_not_configured",
         "message": "Document deletion is not enabled for the source registry yet.",
     }
 
     missing = client().delete("/api/documents/DOES_NOT_EXIST")
     assert missing.status_code == 404
+    assert missing.json()["detail"]["code"] == "document_not_found"
 
 
 def test_feedback_endpoint_stores_in_memory_feedback() -> None:
@@ -141,6 +206,21 @@ def test_feedback_endpoint_stores_in_memory_feedback() -> None:
 
 
 def test_document_create_endpoint_is_reserved_for_ingestion() -> None:
+    empty_response = client().post("/api/documents")
+    assert empty_response.status_code == 202
+    assert empty_response.json()["status"] == "accepted"
+
+    duplicate = client().post(
+        "/api/documents",
+        json={
+            "document_id": "DOC001",
+            "title": "Existing guide",
+            "source_url": "https://example.com/router",
+        },
+    )
+    assert duplicate.status_code == 409
+    assert duplicate.json()["detail"]["code"] == "duplicate_document"
+
     response = client().post(
         "/api/documents",
         json={
@@ -154,6 +234,8 @@ def test_document_create_endpoint_is_reserved_for_ingestion() -> None:
         },
     )
 
-    assert response.status_code == 202
-    assert response.json()["status"] == "accepted"
-    assert response.json()["document_id"] == "DOC_NEW"
+    assert response.status_code == 503
+    assert response.json()["detail"] == {
+        "code": "document_ingestion_not_configured",
+        "message": "Document ingestion is not configured yet.",
+    }

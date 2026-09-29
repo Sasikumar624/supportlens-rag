@@ -42,6 +42,7 @@ class Settings:
     api_host: str
     api_port: int
     api_cors_origins: list[str]
+    api_max_question_chars: int
     qdrant_url: str
     qdrant_api_key: str | None
     qdrant_collection: str
@@ -75,6 +76,7 @@ def get_settings() -> Settings:
         api_host=os.getenv("API_HOST", "127.0.0.1"),
         api_port=_get_int("API_PORT", 8000),
         api_cors_origins=_get_list("API_CORS_ORIGINS", ["http://localhost:3000"]),
+        api_max_question_chars=_get_int("API_MAX_QUESTION_CHARS", 2000),
         qdrant_url=os.getenv("QDRANT_URL", "http://localhost:6333"),
         qdrant_api_key=os.getenv("QDRANT_API_KEY") or None,
         qdrant_collection=os.getenv("QDRANT_COLLECTION", "supportlens_chunks"),

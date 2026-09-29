@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, status
 
 from app.api.dependencies import SOURCES_CSV
+from app.api.errors import ApiErrorCode, conflict, not_found, service_unavailable
 from app.api.schemas import (
     DocumentCreateRequest,
     DocumentCreateResponse,
@@ -39,25 +40,37 @@ def list_documents() -> list[DocumentResponse]:
 def create_document(
     payload: DocumentCreateRequest | None = None,
 ) -> DocumentCreateResponse:
+    if payload is not None and payload.document_id in _known_document_ids():
+        raise conflict(
+            ApiErrorCode.DUPLICATE_DOCUMENT,
+            f"Document already exists: {payload.document_id}",
+            field="document_id",
+        )
+    if payload is not None:
+        raise service_unavailable(
+            ApiErrorCode.DOCUMENT_INGESTION_NOT_CONFIGURED,
+            "Document ingestion is not configured yet.",
+        )
     return DocumentCreateResponse(
         status="accepted",
         message="Document ingestion endpoint is reserved for Phase 27 API wiring.",
-        document_id=payload.document_id if payload is not None else None,
+        document_id=None,
     )
 
 
 @router.delete("/{document_id}", response_model=DocumentDeleteResponse)
 def delete_document(document_id: str) -> DocumentDeleteResponse:
-    known_document_ids = {
-        source.document_id for source in load_sources_csv(SOURCES_CSV)
-    }
-    if document_id not in known_document_ids:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Unknown document_id: {document_id}",
+    if document_id not in _known_document_ids():
+        raise not_found(
+            ApiErrorCode.DOCUMENT_NOT_FOUND,
+            f"Unknown document_id: {document_id}",
+            field="document_id",
         )
-    return DocumentDeleteResponse(
-        document_id=document_id,
-        deleted=False,
-        message="Document deletion is not enabled for the source registry yet.",
+    raise service_unavailable(
+        ApiErrorCode.DOCUMENT_DELETION_NOT_CONFIGURED,
+        "Document deletion is not enabled for the source registry yet.",
     )
+
+
+def _known_document_ids() -> set[str]:
+    return {source.document_id for source in load_sources_csv(SOURCES_CSV)}
