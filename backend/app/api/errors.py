@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 
 
 class ApiErrorCode(StrEnum):
+    REQUEST_TOO_LARGE = "request_too_large"
     EMPTY_QUESTION = "empty_question"
     QUESTION_TOO_LONG = "question_too_long"
     INVALID_METADATA = "invalid_metadata"

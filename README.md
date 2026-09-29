@@ -34,4 +34,5 @@ The project starts from a locked Phase 0 requirements document before implementa
 - [Phase 27 FastAPI Backend](docs/phase-27-fastapi-backend.md)
 - [Phase 28 API Request / Response Design](docs/phase-28-api-request-response-design.md)
 - [Phase 29 Backend Error Handling](docs/phase-29-backend-error-handling.md)
+- [Phase 30 Security Basics](docs/phase-30-security-basics.md)
 - [Full Project Plan](supportlens-rag-plan.md)

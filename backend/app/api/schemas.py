@@ -2,13 +2,13 @@ from pydantic import BaseModel, Field
 
 
 class QueryRequest(BaseModel):
-    question: str = Field(min_length=1)
-    product: str | None = None
-    version: str | None = None
-    category: str | None = None
-    language: str | None = None
-    source_type: str | None = None
-    document_id: str | None = None
+    question: str = Field(min_length=1, max_length=8000)
+    product: str | None = Field(default=None, max_length=100)
+    version: str | None = Field(default=None, max_length=100)
+    category: str | None = Field(default=None, max_length=100)
+    language: str | None = Field(default=None, max_length=100)
+    source_type: str | None = Field(default=None, max_length=50)
+    document_id: str | None = Field(default=None, max_length=100)
 
 
 class SourceResponse(BaseModel):
@@ -50,13 +50,13 @@ class DocumentResponse(BaseModel):
 
 
 class DocumentCreateRequest(BaseModel):
-    document_id: str | None = None
-    title: str | None = None
-    source_url: str | None = None
-    product: str | None = None
-    version: str | None = None
-    category: str | None = None
-    source_type: str | None = None
+    document_id: str | None = Field(default=None, max_length=100)
+    title: str | None = Field(default=None, max_length=300)
+    source_url: str | None = Field(default=None, max_length=2000)
+    product: str | None = Field(default=None, max_length=100)
+    version: str | None = Field(default=None, max_length=100)
+    category: str | None = Field(default=None, max_length=100)
+    source_type: str | None = Field(default=None, max_length=50)
 
 
 class DocumentCreateResponse(BaseModel):
@@ -72,10 +72,10 @@ class DocumentDeleteResponse(BaseModel):
 
 
 class FeedbackRequest(BaseModel):
-    question: str = Field(min_length=1)
-    answer: str = Field(min_length=1)
+    question: str = Field(min_length=1, max_length=2000)
+    answer: str = Field(min_length=1, max_length=8000)
     rating: int = Field(ge=1, le=5)
-    comment: str | None = None
+    comment: str | None = Field(default=None, max_length=1000)
 
 
 class FeedbackResponse(BaseModel):

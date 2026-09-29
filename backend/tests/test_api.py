@@ -58,6 +58,9 @@ def test_health_endpoint_returns_app_status() -> None:
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
     assert response.json()["app"] == "SupportLens"
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.headers["X-Frame-Options"] == "DENY"
+    assert response.headers["Referrer-Policy"] == "no-referrer"
 
 
 def test_query_endpoint_returns_generated_answer_and_sources() -> None:
@@ -145,6 +148,20 @@ def test_query_endpoint_returns_structured_validation_errors() -> None:
     del app.state.query_pipeline
 
 
+def test_api_rejects_oversized_request_body() -> None:
+    app.state.query_pipeline = FakeQueryPipeline()
+
+    response = client().post(
+        "/api/query",
+        json={"question": "x" * 40000},
+    )
+
+    assert response.status_code == 413
+    assert response.json()["detail"]["code"] == "request_too_large"
+
+    del app.state.query_pipeline
+
+
 def test_query_endpoint_maps_pipeline_failures_to_service_unavailable() -> None:
     app.state.query_pipeline = FailingQueryPipeline()
 
@@ -203,6 +220,17 @@ def test_feedback_endpoint_stores_in_memory_feedback() -> None:
     assert response.status_code == 201
     assert response.json() == {"feedback_id": 1, "status": "stored"}
     assert app.state.feedback_items[0]["rating"] == 4
+
+    invalid_comment = client().post(
+        "/api/feedback",
+        json={
+            "question": "How do I reset OpenWrt?",
+            "answer": "Hold the reset button.",
+            "rating": 4,
+            "comment": "x" * 1001,
+        },
+    )
+    assert invalid_comment.status_code == 422
 
 
 def test_document_create_endpoint_is_reserved_for_ingestion() -> None:
