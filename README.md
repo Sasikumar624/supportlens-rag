@@ -36,4 +36,5 @@ The project starts from a locked Phase 0 requirements document before implementa
 - [Phase 29 Backend Error Handling](docs/phase-29-backend-error-handling.md)
 - [Phase 30 Security Basics](docs/phase-30-security-basics.md)
 - [Phase 31 Logging](docs/phase-31-logging.md)
+- [Phase 32 Automated Tests](docs/phase-32-automated-tests.md)
 - [Full Project Plan](supportlens-rag-plan.md)

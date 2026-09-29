@@ -36,8 +36,8 @@ def test_dataset_summary_counts_categories() -> None:
     assert summary["troubleshooting"] >= 1
 
 
-def test_evaluation_dataset_rejects_duplicate_ids(tmp_path: Path) -> None:
-    dataset_path = tmp_path / "dataset.json"
+def test_evaluation_dataset_rejects_duplicate_ids(test_workspace: Path) -> None:
+    dataset_path = test_workspace / "dataset.json"
     dataset_path.write_text(
         json.dumps(
             [
@@ -69,9 +69,9 @@ def test_evaluation_dataset_rejects_duplicate_ids(tmp_path: Path) -> None:
 
 
 def test_evaluation_dataset_rejects_answerable_question_without_evidence(
-    tmp_path: Path,
+    test_workspace: Path,
 ) -> None:
-    dataset_path = tmp_path / "dataset.json"
+    dataset_path = test_workspace / "dataset.json"
     dataset_path.write_text(
         json.dumps(
             [

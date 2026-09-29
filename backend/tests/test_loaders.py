@@ -57,8 +57,8 @@ def test_html_loader_preserves_metadata_and_extracts_text() -> None:
     assert parts[0].metadata["source_url"] == "https://example.com/router-guide"
 
 
-def test_pdf_loader_returns_one_part_per_text_page(tmp_path: Path) -> None:
-    pdf_path = tmp_path / "router.pdf"
+def test_pdf_loader_returns_one_part_per_text_page(test_workspace: Path) -> None:
+    pdf_path = test_workspace / "router.pdf"
     document = fitz.open()
     page = document.new_page()
     page.insert_text((72, 72), "Router setup page")
@@ -74,8 +74,8 @@ def test_pdf_loader_returns_one_part_per_text_page(tmp_path: Path) -> None:
     assert "Router setup page" in parts[0].text
 
 
-def test_load_document_dispatches_by_source_type(tmp_path: Path) -> None:
-    html_path = tmp_path / "guide.html"
+def test_load_document_dispatches_by_source_type(test_workspace: Path) -> None:
+    html_path = test_workspace / "guide.html"
     html_path.write_text("<main><h1>Wi-Fi Setup</h1><p>Set country code.</p></main>", encoding="utf-8")
 
     parts = load_document(make_source("html"), local_path=html_path)

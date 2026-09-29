@@ -175,8 +175,8 @@ def test_build_index_can_reset_collection_before_indexing() -> None:
     assert client.created == ["supportlens_chunks"]
 
 
-def test_build_index_passes_resolved_local_paths_to_loader(tmp_path: Path) -> None:
-    html_path = tmp_path / "router.html"
+def test_build_index_passes_resolved_local_paths_to_loader(test_workspace: Path) -> None:
+    html_path = test_workspace / "router.html"
     html_path.write_text("<main>Router setup</main>", encoding="utf-8")
     seen_paths: list[Path | None] = []
 
@@ -205,8 +205,8 @@ def test_build_index_passes_resolved_local_paths_to_loader(tmp_path: Path) -> No
     assert seen_paths == [html_path]
 
 
-def test_build_index_from_sources_csv_reads_registry(tmp_path: Path) -> None:
-    sources_csv = tmp_path / "sources.csv"
+def test_build_index_from_sources_csv_reads_registry(test_workspace: Path) -> None:
+    sources_csv = test_workspace / "sources.csv"
     sources_csv.write_text(
         "\n".join(
             [
