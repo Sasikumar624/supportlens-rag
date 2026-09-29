@@ -61,6 +61,17 @@ def test_health_endpoint_returns_app_status() -> None:
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["X-Frame-Options"] == "DENY"
     assert response.headers["Referrer-Policy"] == "no-referrer"
+    assert response.headers["X-Request-ID"]
+
+
+def test_api_preserves_request_id_header() -> None:
+    response = client().get(
+        "/health",
+        headers={"X-Request-ID": "test-request-123"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["X-Request-ID"] == "test-request-123"
 
 
 def test_query_endpoint_returns_generated_answer_and_sources() -> None:

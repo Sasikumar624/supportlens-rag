@@ -6,12 +6,14 @@ from app.api.dependencies import QueryPipeline, query_pipeline
 from app.api.errors import ApiErrorCode, bad_request, service_unavailable
 from app.api.schemas import QueryRequest, QueryResponse, SourceResponse
 from app.core.config import get_settings
+from app.core.logging import get_logger
 from app.rag.generator import GeneratedAnswer
 from app.rag.retriever import MetadataFilter
 
 
 router = APIRouter(prefix="/api")
 settings = get_settings()
+logger = get_logger(__name__)
 
 
 @router.post("/query", response_model=QueryResponse)
@@ -37,6 +39,12 @@ def query_support(
             str(error),
         ) from error
     total_time_ms = (perf_counter() - started_at) * 1000
+    logger.info(
+        "query_completed refused=%s source_count=%s total_time_ms=%.3f",
+        generated_answer.refused,
+        len(generated_answer.sources),
+        total_time_ms,
+    )
     return _query_response(generated_answer, total_time_ms=total_time_ms)
 
 

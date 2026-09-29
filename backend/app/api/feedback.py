@@ -2,9 +2,11 @@ from fastapi import APIRouter, Depends, status
 
 from app.api.dependencies import feedback_store
 from app.api.schemas import FeedbackRequest, FeedbackResponse
+from app.core.logging import get_logger
 
 
 router = APIRouter(prefix="/api")
+logger = get_logger(__name__)
 
 
 @router.post(
@@ -26,4 +28,5 @@ def submit_feedback(
             "comment": payload.comment,
         }
     )
+    logger.info("feedback_stored feedback_id=%s rating=%s", feedback_id, payload.rating)
     return FeedbackResponse(feedback_id=feedback_id, status="stored")

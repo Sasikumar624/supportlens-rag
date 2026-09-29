@@ -8,14 +8,18 @@ from app.api.schemas import (
     DocumentDeleteResponse,
     DocumentResponse,
 )
+from app.core.logging import get_logger
 from app.ingestion.loaders import load_sources_csv
 
 
 router = APIRouter(prefix="/api/documents")
+logger = get_logger(__name__)
 
 
 @router.get("", response_model=list[DocumentResponse])
 def list_documents() -> list[DocumentResponse]:
+    sources = load_sources_csv(SOURCES_CSV)
+    logger.info("documents_listed count=%s", len(sources))
     return [
         DocumentResponse(
             document_id=source.document_id,
@@ -28,7 +32,7 @@ def list_documents() -> list[DocumentResponse]:
             source_type=source.source_type,
             raw_storage_policy=source.raw_storage_policy,
         )
-        for source in load_sources_csv(SOURCES_CSV)
+        for source in sources
     ]
 
 
