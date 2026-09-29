@@ -1,4 +1,5 @@
 from collections.abc import Awaitable, Callable
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,15 +11,24 @@ from app.api.query import router as query_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging, log_requests_middleware
 from app.core.security import RequestSizeLimitMiddleware, add_security_headers
+from app.rag.pipeline import build_query_pipeline_from_settings
 
 
 settings = get_settings()
 configure_logging(settings.log_level)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if settings.enable_query_pipeline:
+        app.state.query_pipeline = build_query_pipeline_from_settings(settings)
+    yield
+
 app = FastAPI(
     title=settings.app_name,
     debug=settings.app_debug,
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
