@@ -2,6 +2,8 @@ from dataclasses import dataclass
 
 from app.core.config import Settings, get_settings
 from app.rag.generator import NoAnswerConfig, RAGPipeline
+from app.rag.hybrid_retriever import HybridRetrievalConfig, HybridRetriever
+from app.rag.keyword_retriever import QdrantKeywordRetriever
 from app.rag.local_llm import LocalHuggingFaceLLMClient
 from app.rag.query_processing import QueryProcessingRetriever
 from app.rag.reranker import CrossEncoderReranker, RerankedRetriever, RerankingConfig
@@ -37,8 +39,17 @@ def build_query_pipeline_from_settings(
 
     reranking_config = RerankingConfig.from_settings()
     dense_retriever = DenseRetriever.from_settings(top_k=reranking_config.candidate_top_k)
+    keyword_retriever = QdrantKeywordRetriever.from_settings()
+    hybrid_retriever = HybridRetriever(
+        dense_retriever=dense_retriever,
+        keyword_retriever=keyword_retriever,
+        config=HybridRetrievalConfig(
+            top_k=reranking_config.candidate_top_k,
+            rrf_k=settings.hybrid_rrf_k,
+        ),
+    )
     reranked_retriever = RerankedRetriever(
-        retriever=dense_retriever,
+        retriever=hybrid_retriever,
         reranker=CrossEncoderReranker.from_settings(),
         config=reranking_config,
     )

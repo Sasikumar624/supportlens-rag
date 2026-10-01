@@ -135,9 +135,13 @@ class PromptTemplate:
 
         return "\n".join(
             [
-                "Answer this technical support question using only the provided context.",
+                "You are SupportLens, a careful technical-support assistant.",
+                "Answer using only the provided support context.",
                 "If the context is not enough, say that the available documentation does not contain the answer.",
-                "Use short practical steps and cite sources with [1], [2], etc.",
+                "Use short practical steps when the question asks how to do something.",
+                "Mention warnings or prerequisites when the context includes them.",
+                "Cite every factual claim with source numbers like [1] or [2].",
+                "Do not expose chunk IDs, retrieval scores, raw metadata, navigation text, or page chrome.",
                 "",
                 "Question:",
                 question.strip(),
@@ -229,7 +233,7 @@ class RAGPipeline:
 
         prompt = build_grounded_prompt(question, context_chunks)
         answer = self._llm_client.generate(prompt)
-        if _needs_extractive_fallback(answer):
+        if _needs_extractive_fallback(answer, source_count=len(context_chunks)):
             answer = _extractive_answer(context_chunks)
         sources = [
             SourceCitation.from_result(index, result)
@@ -261,20 +265,22 @@ def _format_source_metadata(context_chunks: list[RetrievalResult]) -> str:
 
 
 def _format_source_metadata_line(index: int, result: RetrievalResult) -> str:
-    metadata = [
-        f"Source [{index}]",
-        f"chunk_id={result.chunk_id}" if result.chunk_id else None,
-        f"document_id={result.document_id}" if result.document_id else None,
-        f"title={result.title}" if result.title else None,
-        f"category={result.category}" if result.category else None,
-        f"product={result.product}" if result.product else None,
-        f"version={result.version}" if result.version else None,
-        f"page={result.page}" if result.page is not None else None,
-        f"section={result.section}" if result.section else None,
-        f"source_url={result.source_url}" if result.source_url else None,
-        f"score={result.score:.4f}",
-    ]
-    return " | ".join(value for value in metadata if value)
+    metadata = [f"Source [{index}]"]
+    if result.title:
+        metadata.append(f"Title: {result.title}")
+    if result.product:
+        metadata.append(f"Product: {result.product}")
+    if result.version:
+        metadata.append(f"Version: {result.version}")
+    if result.category:
+        metadata.append(f"Category: {result.category}")
+    if result.section:
+        metadata.append(f"Section: {result.section}")
+    if result.page is not None:
+        metadata.append(f"Page: {result.page}")
+    if result.source_url:
+        metadata.append(f"URL: {result.source_url}")
+    return "\n".join(metadata)
 
 
 def _format_retrieved_context(context_chunks: list[RetrievalResult]) -> str:
@@ -292,12 +298,13 @@ def _format_context_chunk(index: int, result: RetrievalResult) -> str:
     return "\n".join(
         [
             metadata,
+            "Content:",
             result.text,
         ]
     )
 
 
-def _needs_extractive_fallback(answer: str) -> bool:
+def _needs_extractive_fallback(answer: str, *, source_count: int) -> bool:
     clean_answer = " ".join(answer.strip().split())
     if len(clean_answer.split()) < 8:
         return True
@@ -305,7 +312,14 @@ def _needs_extractive_fallback(answer: str) -> bool:
         return True
     if _contains_page_chrome(clean_answer):
         return True
-    return "[" not in clean_answer or "]" not in clean_answer
+    return not _has_valid_citation(clean_answer, source_count=source_count)
+
+
+def _has_valid_citation(answer: str, *, source_count: int) -> bool:
+    citations = [int(value) for value in re.findall(r"\[(\d+)\]", answer)]
+    if not citations:
+        return False
+    return all(1 <= citation <= source_count for citation in citations)
 
 
 def _extractive_answer(context_chunks: list[RetrievalResult]) -> str:
@@ -495,8 +509,20 @@ def _no_answer_reason(
         return "insufficient_context"
 
     if config.min_context_score is not None:
-        best_score = max(result.score for result in context_chunks)
+        best_score = max(_relevance_score(result) for result in context_chunks)
         if best_score < config.min_context_score:
             return "low_relevance"
 
     return None
+
+
+def _relevance_score(result: RetrievalResult) -> float:
+    for value in [
+        result.dense_score,
+        result.payload.get("retrieval_score"),
+        result.keyword_score,
+        result.score,
+    ]:
+        if isinstance(value, int | float):
+            return float(value)
+    return 0.0

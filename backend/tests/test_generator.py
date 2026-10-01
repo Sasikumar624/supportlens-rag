@@ -72,6 +72,11 @@ class PageChromeLeakingLLMClient:
         )
 
 
+class InvalidCitationLLMClient:
+    def generate(self, prompt: str) -> str:
+        return "Hold the reset button for ten seconds and wait for reboot. [2]"
+
+
 def test_build_grounded_prompt_includes_rules_question_and_context() -> None:
     prompt = build_grounded_prompt(
         "How do I reset the router?",
@@ -99,14 +104,17 @@ def test_build_grounded_prompt_includes_rules_question_and_context() -> None:
     assert "Question:" in prompt
     assert "Context:" in prompt
     assert "Answer:" in prompt
-    assert "using only the provided context" in prompt
-    assert "cite sources with [1]" in prompt
+    assert "using only the provided support context" in prompt
+    assert "Cite every factual claim" in prompt
+    assert "Do not expose chunk IDs" in prompt
     assert "How do I reset the router?" in prompt
     assert "Source [1]" in prompt
-    assert "category=troubleshooting" in prompt
-    assert "product=Router X" in prompt
-    assert "version=1.0" in prompt
-    assert "source_url=https://example.com/router" in prompt
+    assert "Category: troubleshooting" in prompt
+    assert "Product: Router X" in prompt
+    assert "Version: 1.0" in prompt
+    assert "URL: https://example.com/router" in prompt
+    assert "chunk_id=" not in prompt
+    assert "score=" not in prompt
     assert "Hold the reset button" in prompt
 
 
@@ -187,6 +195,20 @@ def test_rag_pipeline_falls_back_when_generation_leaks_page_chrome() -> None:
     )
     assert "Home Documentation" not in answer.answer
     assert "Backlinks" not in answer.answer
+
+
+def test_rag_pipeline_falls_back_when_generation_cites_missing_source() -> None:
+    pipeline = RAGPipeline(
+        retriever=FakeRetriever(),
+        llm_client=InvalidCitationLLMClient(),
+    )
+
+    answer = pipeline.answer("How do I reset Router X?")
+
+    assert answer.answer == (
+        "Based on the available documentation:\n\n"
+        "- Hold the reset button for ten seconds. [1]"
+    )
 
 
 def test_rag_pipeline_fallback_strips_metadata_from_chunk_text() -> None:

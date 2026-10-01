@@ -166,10 +166,18 @@ def _to_hybrid_result(key: str, entry: dict) -> RetrievalResult:
     payload["retrieval_sources"] = sorted(entry["sources"])
     return RetrievalResult(
         point_id=str(payload.get("chunk_id") or entry["point_id"] or key),
-        score=entry["hybrid_score"],
+        score=_best_relevance_score(payload, fallback=entry["hybrid_score"]),
         payload=payload,
     )
 
 
 def _fusion_key(result: RetrievalResult) -> str:
     return result.chunk_id or result.point_id
+
+
+def _best_relevance_score(payload: dict, *, fallback: float) -> float:
+    for field_name in ["dense_score", "keyword_score", "hybrid_score"]:
+        value = payload.get(field_name)
+        if isinstance(value, int | float):
+            return float(value)
+    return fallback

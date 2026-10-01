@@ -147,7 +147,8 @@ def _with_rerank_score(
     rerank_score: float,
 ) -> RetrievalResult:
     payload = dict(result.payload)
-    payload["dense_score"] = result.score
+    payload.setdefault("retrieval_score", result.score)
+    payload.setdefault("dense_score", result.score)
     payload["rerank_score"] = rerank_score
     return RetrievalResult(
         point_id=result.point_id,

@@ -1,8 +1,10 @@
 from app.rag.keyword_retriever import (
     KeywordRetrievalConfig,
     KeywordRetriever,
+    QdrantKeywordRetriever,
     tokenize_for_keyword_search,
 )
+from app.db.qdrant import QdrantCollectionConfig
 from app.rag.retriever import MetadataFilter, RetrievalResult
 
 
@@ -114,6 +116,52 @@ def test_keyword_retriever_can_build_from_retrieval_results() -> None:
     assert results[0].chunk_id == "DOC001_C0001"
 
 
+def test_qdrant_keyword_retriever_loads_payloads_once() -> None:
+    class Point:
+        def __init__(self, point_payload: dict) -> None:
+            self.payload = point_payload
+
+    class FakeScroller:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def scroll(self, **kwargs):
+            self.calls += 1
+            assert kwargs["collection_name"] == "supportlens_test"
+            assert kwargs["with_payload"] is True
+            assert kwargs["with_vectors"] is False
+            return (
+                [
+                    Point(
+                        payload(
+                            "DOC001_C0001",
+                            "AX55 firmware downloads require matching hardware version.",
+                            product="TP-Link Archer AX55",
+                            category="firmware",
+                        )
+                    )
+                ],
+                None,
+            )
+
+    scroller = FakeScroller()
+    retriever = QdrantKeywordRetriever(
+        QdrantCollectionConfig(
+            url="http://qdrant.test",
+            collection_name="supportlens_test",
+        ),
+        KeywordRetrievalConfig(top_k=3),
+        client=scroller,
+    )
+
+    first = retriever.retrieve("AX55 hardware version")
+    second = retriever.retrieve("AX55 firmware")
+
+    assert first[0].chunk_id == "DOC001_C0001"
+    assert second[0].chunk_id == "DOC001_C0001"
+    assert scroller.calls == 1
+
+
 def test_keyword_retriever_rejects_invalid_inputs() -> None:
     retriever = KeywordRetriever([])
 
@@ -140,3 +188,16 @@ def test_keyword_retriever_rejects_invalid_inputs() -> None:
         assert "min_score" in str(error)
     else:
         raise AssertionError("Expected min_score validation error")
+
+    try:
+        QdrantKeywordRetriever(
+            QdrantCollectionConfig(
+                url="http://qdrant.test",
+                collection_name="supportlens_test",
+            ),
+            scroll_batch_size=0,
+        )
+    except ValueError as error:
+        assert "scroll_batch_size" in str(error)
+    else:
+        raise AssertionError("Expected scroll batch validation error")

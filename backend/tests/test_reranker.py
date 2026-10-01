@@ -66,6 +66,7 @@ def test_cross_encoder_reranker_orders_results_by_rerank_score() -> None:
     assert reranked[0].score == 0.8
     assert reranked[0].rerank_score == 0.9
     assert reranked[0].payload["dense_score"] == 0.8
+    assert reranked[0].payload["retrieval_score"] == 0.8
     assert model.pairs == [
         [
             ("How do I reset the router?", "setup steps"),
@@ -73,6 +74,32 @@ def test_cross_encoder_reranker_orders_results_by_rerank_score() -> None:
             ("How do I reset the router?", "firmware upgrade"),
         ]
     ]
+
+
+def test_reranker_preserves_existing_hybrid_scores() -> None:
+    model = FakeCrossEncoder(scores=[0.9])
+    reranker = CrossEncoderReranker(
+        CrossEncoderRerankerConfig(model_name="fake-model"),
+        model=model,
+    )
+    hybrid_result = RetrievalResult(
+        point_id="point-1",
+        score=0.77,
+        payload={
+            "chunk_id": "DOC001_C0001",
+            "text": "AX55 firmware guidance",
+            "dense_score": 0.77,
+            "keyword_score": 5.2,
+            "hybrid_score": 0.03,
+        },
+    )
+
+    reranked = reranker.rerank("AX55 firmware", [hybrid_result])
+
+    assert reranked[0].dense_score == 0.77
+    assert reranked[0].keyword_score == 5.2
+    assert reranked[0].hybrid_score == 0.03
+    assert reranked[0].rerank_score == 0.9
 
 
 def test_reranked_retriever_limits_results_and_forwards_metadata_filter() -> None:
