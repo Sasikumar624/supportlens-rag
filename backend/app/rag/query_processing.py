@@ -37,6 +37,18 @@ DEFAULT_CATEGORY_ALIASES = {
     ),
     "configuration": ("configure", "configuration", "wi-fi", "wifi", "wireless"),
     "firmware": ("firmware", "upgrade", "sysupgrade", "luci"),
+    "technical": (
+        "specification",
+        "specifications",
+        "spec",
+        "specs",
+        "hardware",
+        "cpu",
+        "memory",
+        "ram",
+        "flash",
+        "ports",
+    ),
     "faq": (
         "what is",
         "what are",
@@ -52,8 +64,15 @@ DEFAULT_PRODUCT_ALIASES = {
     "TP-Link Archer AX21": ("archer ax21", "ax21"),
     "TP-Link Archer AX55": ("archer ax55", "ax55"),
     "TP-Link Routers": ("tp-link", "tplink", "tp link", "archer"),
+    "ASUS RT-AX55": ("rt-ax55", "rt ax55"),
     "NETGEAR Routers": ("netgear", "nighthawk", "routerlogin"),
     "ASUS Routers": ("asus", "asuswrt", "asus router", "asusrouter"),
+}
+
+DEFAULT_PRODUCT_FALLBACKS = {
+    "TP-Link Archer AX21": "TP-Link Routers",
+    "TP-Link Archer AX55": "TP-Link Routers",
+    "ASUS RT-AX55": "ASUS Routers",
 }
 
 
@@ -72,6 +91,7 @@ class QueryProcessingConfig:
     known_products: tuple[str, ...] = (
         "OpenWrt",
         "TP-Link Archer AX21",
+        "ASUS RT-AX55",
         "TP-Link Archer AX55",
         "TP-Link Routers",
         "NETGEAR Routers",
@@ -83,6 +103,9 @@ class QueryProcessingConfig:
     )
     product_aliases: dict[str, tuple[str, ...]] = field(
         default_factory=lambda: dict(DEFAULT_PRODUCT_ALIASES)
+    )
+    product_fallbacks: dict[str, str] = field(
+        default_factory=lambda: dict(DEFAULT_PRODUCT_FALLBACKS)
     )
 
     def __post_init__(self) -> None:
@@ -100,6 +123,9 @@ class QueryProcessingConfig:
                 raise ValueError("product aliases cannot contain empty products")
             if any(not alias.strip() for alias in aliases):
                 raise ValueError("product alias lists cannot contain empty aliases")
+        for product, fallback in self.product_fallbacks.items():
+            if not product.strip() or not fallback.strip():
+                raise ValueError("product fallbacks cannot contain empty values")
 
 
 @dataclass(frozen=True)
@@ -194,9 +220,48 @@ class QueryProcessingRetriever:
             explicit_filter=metadata_filter,
             inferred_filter=processed_query.metadata_filter,
         )
-        return self._retriever.retrieve(
+        results = self._retriever.retrieve(
             processed_query.normalized_query,
             metadata_filter=effective_filter,
+        )
+        if results:
+            return results
+
+        fallback_filter = self._fallback_filter(
+            explicit_filter=metadata_filter,
+            effective_filter=effective_filter,
+            processed_query=processed_query,
+        )
+        if fallback_filter is None:
+            return results
+        return self._retriever.retrieve(
+            processed_query.normalized_query,
+            metadata_filter=fallback_filter,
+        )
+
+    def _fallback_filter(
+        self,
+        *,
+        explicit_filter: MetadataFilter | None,
+        effective_filter: MetadataFilter | None,
+        processed_query: ProcessedQuery,
+    ) -> MetadataFilter | None:
+        if explicit_filter is not None or effective_filter is None:
+            return None
+
+        fallback_product = self._processor.config.product_fallbacks.get(
+            processed_query.detected_product or ""
+        )
+        if fallback_product is None:
+            return None
+
+        return MetadataFilter(
+            product=fallback_product,
+            version=None,
+            category=effective_filter.category,
+            language=effective_filter.language,
+            source_type=effective_filter.source_type,
+            document_id=effective_filter.document_id,
         )
 
 

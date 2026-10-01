@@ -6,6 +6,8 @@ $modelCache = Join-Path $root ".hf-cache"
 New-Item -ItemType Directory -Force -Path $modelCache | Out-Null
 $env:HF_HOME = $modelCache
 $env:TRANSFORMERS_CACHE = $modelCache
+$env:HF_HUB_OFFLINE = "1"
+$env:TRANSFORMERS_OFFLINE = "1"
 $env:HF_HUB_DISABLE_SYMLINKS_WARNING = "1"
 Set-Location (Join-Path $root "backend")
 

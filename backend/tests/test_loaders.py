@@ -27,7 +27,7 @@ def test_load_sources_csv_reads_phase_2_registry() -> None:
     repo_root = Path(__file__).resolve().parents[2]
     sources = load_sources_csv(repo_root / "data" / "sources.csv")
 
-    assert len(sources) == 21
+    assert len(sources) == 45
     assert sources[0].document_id == "DOC001"
     assert sources[0].source_type == "html"
     assert {source.source_type for source in sources} == {"html"}
@@ -38,6 +38,7 @@ def test_load_sources_csv_reads_phase_2_registry() -> None:
         "TP-Link Routers",
         "NETGEAR Routers",
         "ASUS Routers",
+        "ASUS RT-AX55",
     }
     assert {source.category for source in sources} >= {
         "setup",
@@ -46,6 +47,8 @@ def test_load_sources_csv_reads_phase_2_registry() -> None:
         "firmware",
         "manuals",
         "faq",
+        "technical",
+        "policies",
     }
 
 

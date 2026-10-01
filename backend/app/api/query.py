@@ -1,19 +1,37 @@
+import re
 from time import perf_counter
 
 from fastapi import APIRouter, Depends
 
-from app.api.dependencies import QueryPipeline, query_pipeline
+from app.api.dependencies import QueryPipeline, SOURCES_CSV, query_pipeline
 from app.api.errors import ApiErrorCode, bad_request, service_unavailable
 from app.api.schemas import QueryRequest, QueryResponse, SourceResponse
 from app.core.config import get_settings
 from app.core.logging import get_logger
-from app.rag.generator import GeneratedAnswer
+from app.ingestion.loaders import load_sources_csv
+from app.rag.generator import GeneratedAnswer, SourceCitation
 from app.rag.retriever import MetadataFilter
 
 
 router = APIRouter(prefix="/api")
 settings = get_settings()
 logger = get_logger(__name__)
+
+PRODUCT_INVENTORY_PATTERNS = (
+    re.compile(r"\b(?:list|show)\s+(?:the\s+)?products\b", re.IGNORECASE),
+    re.compile(
+        r"\bwhat\s+products\s+(?:are\s+)?(?:available|indexed|included)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bwhich\s+products\s+(?:are\s+)?(?:available|indexed|included)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bproducts\s+(?:in|inside)\s+(?:the\s+)?(?:knowledge\s+base|corpus)\b",
+        re.IGNORECASE,
+    ),
+)
 
 
 @router.post("/query", response_model=QueryResponse)
@@ -24,10 +42,15 @@ def query_support(
     _validate_query_request(payload)
     started_at = perf_counter()
     try:
-        generated_answer = pipeline.answer(
-            payload.question.strip(),
-            metadata_filter=_metadata_filter_from_query(payload),
-        )
+        question = payload.question.strip()
+        metadata_filter = _metadata_filter_from_query(payload)
+        if metadata_filter is None and _is_product_inventory_question(question):
+            generated_answer = _answer_product_inventory(question)
+        else:
+            generated_answer = pipeline.answer(
+                question,
+                metadata_filter=metadata_filter,
+            )
     except ValueError as error:
         raise bad_request(
             ApiErrorCode.INVALID_METADATA,
@@ -92,6 +115,52 @@ def _metadata_filter_from_query(payload: QueryRequest) -> MetadataFilter | None:
         document_id=payload.document_id,
     )
     return None if metadata_filter.is_empty else metadata_filter
+
+
+def _is_product_inventory_question(question: str) -> bool:
+    normalized = " ".join(question.strip().split())
+    if normalized.lower().strip("?.!") == "products":
+        return True
+    return any(pattern.search(normalized) for pattern in PRODUCT_INVENTORY_PATTERNS)
+
+
+def _answer_product_inventory(question: str) -> GeneratedAnswer:
+    sources = load_sources_csv(SOURCES_CSV)
+    product_sources = {}
+    for source in sources:
+        product_sources.setdefault(source.product, source)
+
+    citations = [
+        SourceCitation(
+            source_id=index,
+            chunk_id=None,
+            document_id=source.document_id,
+            title=source.title,
+            category=source.category,
+            product=source.product,
+            version=source.version,
+            page=None,
+            section="Product inventory",
+            source_url=source.source_url,
+            score=1.0,
+        )
+        for index, source in enumerate(product_sources.values(), start=1)
+    ]
+    answer_lines = [
+        "The indexed knowledge base currently includes these products:",
+        "",
+        *[
+            f"- {citation.product} [{citation.source_id}]"
+            for citation in citations
+            if citation.product
+        ],
+    ]
+    return GeneratedAnswer(
+        question=question,
+        answer="\n".join(answer_lines),
+        sources=citations,
+        context_chunks=[],
+    )
 
 
 def _query_response(

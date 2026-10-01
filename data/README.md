@@ -4,7 +4,7 @@ This directory tracks dataset metadata and reproducible collection structure.
 
 The locked project domain is networking, router, and connectivity support. See `docs/domain-specification.md` for the production domain contract.
 
-The current `sources.csv` entries are a Stage B seed registry with 21 official support sources across OpenWrt, TP-Link, NETGEAR, and ASUS. They are used to validate the pipeline inside the domain; they are broader than the original OpenWrt-only smoke test but still do not represent the full intended production corpus.
+The current `sources.csv` entries are a Stage B+ registry with 45 official support sources across OpenWrt, TP-Link, NETGEAR, and ASUS. They are used to validate the pipeline inside the domain; they are broader than the original OpenWrt-only smoke test but still do not represent the full intended production corpus.
 
 Raw third-party documents should not be committed unless redistribution rights are clearly verified. For Phase 2, source URLs and provenance are recorded in `sources.csv`; raw content is not copied into the repository.
 
@@ -24,7 +24,7 @@ Raw third-party documents should not be committed unless redistribution rights a
 
 ## Current Registry Shape
 
-- 21 official support sources
+- 45 official support sources
 - Source families: OpenWrt, TP-Link, NETGEAR, ASUS
-- Categories: setup, troubleshooting, configuration, firmware, manuals, faq
+- Categories: setup, troubleshooting, configuration, firmware, manuals, faq, technical, policies
 - Raw storage policy: URL/provenance only until redistribution rights are verified

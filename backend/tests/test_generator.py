@@ -77,6 +77,11 @@ class InvalidCitationLLMClient:
         return "Hold the reset button for ten seconds and wait for reboot. [2]"
 
 
+class FailingLLMClient:
+    def generate(self, prompt: str) -> str:
+        raise RuntimeError("model unavailable")
+
+
 def test_build_grounded_prompt_includes_rules_question_and_context() -> None:
     prompt = build_grounded_prompt(
         "How do I reset the router?",
@@ -153,8 +158,111 @@ def test_rag_pipeline_retrieves_builds_prompt_and_returns_sources() -> None:
     assert "https://example.com/router" in answer.answer_with_citations
 
 
+def test_rag_pipeline_refuses_pricing_questions_before_retrieval() -> None:
+    retriever = FakeRetriever()
+    llm = FakeLLMClient()
+    pipeline = RAGPipeline(retriever=retriever, llm_client=llm)
+
+    answer = pipeline.answer("What is the price range for Archer AX55?")
+
+    assert answer.refused is True
+    assert answer.no_answer_reason == "unsupported_pricing"
+    assert "pricing" in answer.answer
+    assert answer.sources == []
+    assert retriever.calls == []
+    assert llm.prompts == []
+
+
+def test_rag_pipeline_refuses_purchase_recommendations_before_retrieval() -> None:
+    retriever = FakeRetriever()
+    llm = FakeLLMClient()
+    pipeline = RAGPipeline(retriever=retriever, llm_client=llm)
+
+    answer = pipeline.answer("Which router should I buy for my apartment?")
+
+    assert answer.refused is True
+    assert answer.no_answer_reason == "unsupported_purchase_recommendation"
+    assert "purchasing recommendation" in answer.answer
+    assert retriever.calls == []
+    assert llm.prompts == []
+
+
+def test_rag_pipeline_refuses_private_live_state_before_retrieval() -> None:
+    retriever = FakeRetriever()
+    llm = FakeLLMClient()
+    pipeline = RAGPipeline(retriever=retriever, llm_client=llm)
+
+    answer = pipeline.answer("What firmware is installed on my router right now?")
+
+    assert answer.refused is True
+    assert answer.no_answer_reason == "unsupported_live_state"
+    assert "cannot see your live router" in answer.answer
+    assert retriever.calls == []
+    assert llm.prompts == []
+
+
+def test_rag_pipeline_refuses_unsafe_access_before_retrieval() -> None:
+    retriever = FakeRetriever()
+    llm = FakeLLMClient()
+    pipeline = RAGPipeline(retriever=retriever, llm_client=llm)
+
+    answer = pipeline.answer("Can you hack into my neighbor's Wi-Fi?")
+
+    assert answer.refused is True
+    assert answer.no_answer_reason == "unsafe_unauthorized_access"
+    assert "unauthorized access" in answer.answer
+    assert retriever.calls == []
+    assert llm.prompts == []
+
+
+def test_rag_pipeline_does_not_treat_ip_range_as_pricing() -> None:
+    retriever = FakeRetriever()
+    llm = FakeLLMClient()
+    pipeline = RAGPipeline(retriever=retriever, llm_client=llm)
+
+    answer = pipeline.answer("How do I configure an IP address range?")
+
+    assert answer.refused is False
+    assert answer.answer == "Hold the reset button for ten seconds. [1]"
+    assert retriever.calls == [("How do I configure an IP address range?", None)]
+
+
 def test_rag_pipeline_falls_back_to_extractive_answer_for_weak_generation() -> None:
     pipeline = RAGPipeline(retriever=FakeRetriever(), llm_client=WeakLLMClient())
+
+    answer = pipeline.answer("How do I reset Router X?")
+
+    assert answer.answer == (
+        "Based on the available documentation:\n\n"
+        "- Hold the reset button for ten seconds. [1]"
+    )
+    assert answer.sources[0].chunk_id == "DOC_TEST_C0001"
+
+
+def test_rag_pipeline_can_skip_llm_generation_for_fast_cited_answers() -> None:
+    llm = FakeLLMClient()
+    pipeline = RAGPipeline(
+        retriever=FakeRetriever(),
+        llm_client=llm,
+        prompt_config=PromptConfig(llm_generation_enabled=False),
+    )
+
+    answer = pipeline.answer("How do I reset Router X?")
+
+    assert answer.answer == (
+        "Based on the available documentation:\n\n"
+        "- Hold the reset button for ten seconds. [1]"
+    )
+    assert answer.sources[0].chunk_id == "DOC_TEST_C0001"
+    assert llm.prompts == []
+
+
+def test_rag_pipeline_falls_back_when_llm_generation_fails() -> None:
+    pipeline = RAGPipeline(
+        retriever=FakeRetriever(),
+        llm_client=FailingLLMClient(),
+        prompt_config=PromptConfig(llm_generation_enabled=True),
+    )
 
     answer = pipeline.answer("How do I reset Router X?")
 
@@ -282,6 +390,129 @@ def test_rag_pipeline_fallback_removes_document_page_chrome() -> None:
     assert "Don't rush the installation" in answer.answer
 
 
+def test_rag_pipeline_fallback_skips_vendor_page_chrome() -> None:
+    class VendorSetupRetriever(FakeRetriever):
+        def retrieve(self, query: str, *, metadata_filter=None):
+            return [
+                RetrievalResult(
+                    point_id="point-1",
+                    score=0.91,
+                    payload={
+                        "chunk_id": "DOC024_C0001",
+                        "title": "TP-Link router setup",
+                        "section": "How to Set Up a TP-Link Router (New Interface)",
+                        "text": "How to Set Up a TP-Link Router (New Interface)",
+                    },
+                ),
+                RetrievalResult(
+                    point_id="point-2",
+                    score=0.9,
+                    payload={
+                        "chunk_id": "DOC024_C0002",
+                        "title": "TP-Link router setup",
+                        "section": "When You Set Up",
+                        "text": (
+                            "How to Set Up a TP-Link Router (New Interface) "
+                            "When You Set Up Last updated: September 28, 2026 "
+                            "TP-Link routers come with two types of setup interfaces."
+                        ),
+                    },
+                ),
+                RetrievalResult(
+                    point_id="point-3",
+                    score=0.88,
+                    payload={
+                        "chunk_id": "DOC024_C0003",
+                        "title": "TP-Link router setup",
+                        "section": "Tether app",
+                        "text": (
+                            ". This guide walks you through a complete setup using "
+                            "the Tether app or the web management page for routers "
+                            "with the new interface."
+                        ),
+                    },
+                ),
+            ]
+
+    pipeline = RAGPipeline(
+        retriever=VendorSetupRetriever(),
+        llm_client=WeakLLMClient(),
+    )
+
+    answer = pipeline.answer("How do I set up Archer AX55?")
+
+    assert "Last updated" not in answer.answer
+    assert "How to Set Up a TP-Link Router (New Interface) [1]" not in answer.answer
+    assert "This guide walks you through a complete setup" in answer.answer
+
+
+def test_rag_pipeline_returns_practical_wifi_troubleshooting_answer() -> None:
+    class WifiIssueRetriever(FakeRetriever):
+        def retrieve(self, query: str, *, metadata_filter=None):
+            return [
+                RetrievalResult(
+                    point_id="point-1",
+                    score=0.71,
+                    payload={
+                        "chunk_id": "DOC004_C0001",
+                        "document_id": "DOC004",
+                        "title": "Wi-Fi configuration",
+                        "product": "OpenWrt",
+                        "category": "configuration",
+                        "section": "Bridged AP",
+                        "text": (
+                            "Wi-Fi configuration Bridged AP Configure access point "
+                            "or client mode before changing bridged AP settings."
+                        ),
+                    },
+                ),
+                RetrievalResult(
+                    point_id="point-2",
+                    score=0.76,
+                    payload={
+                        "chunk_id": "DOC026_C0001",
+                        "document_id": "DOC026",
+                        "title": "TP-Link Wi-Fi settings and password changes",
+                        "product": "TP-Link Routers",
+                        "category": "configuration",
+                        "section": "Wi-Fi Network Not Showing Up? How to Fix It",
+                        "text": (
+                            "Please refer to Wi-Fi Network Not Showing Up? How to "
+                            "Fix It for detailed troubleshooting guidance."
+                        ),
+                    },
+                ),
+                RetrievalResult(
+                    point_id="point-3",
+                    score=13.9,
+                    payload={
+                        "chunk_id": "DOC026_C0002",
+                        "document_id": "DOC026",
+                        "title": "TP-Link Wi-Fi settings and password changes",
+                        "product": "TP-Link Routers",
+                        "category": "configuration",
+                        "section": "Then",
+                        "text": (
+                            "Disable Smart Connect. Then manually change one of "
+                            "the Wi-Fi names (SSID) to something different."
+                        ),
+                    },
+                ),
+            ]
+
+    pipeline = RAGPipeline(
+        retriever=WifiIssueRetriever(),
+        llm_client=WeakLLMClient(),
+    )
+
+    answer = pipeline.answer("I face WIFI configuration issue how i solve this")
+
+    assert "general Wi-Fi checks" in answer.answer
+    assert "Confirm the Wi-Fi network is enabled" in answer.answer
+    assert "Smart Connect" in answer.answer
+    assert "Wi-Fi configuration Bridged AP Configure" not in answer.answer
+
+
 def test_rag_pipeline_limits_context_chunks() -> None:
     class ManyResultsRetriever(FakeRetriever):
         def retrieve(self, query: str, *, metadata_filter=None):
@@ -400,7 +631,7 @@ def test_rag_pipeline_can_disable_no_answer_gate_for_experiments() -> None:
     answer = pipeline.answer("Question?")
 
     assert answer.refused is False
-    assert answer.answer == "Hold the reset button for ten seconds. [1]"
+    assert answer.answer == DEFAULT_NO_ANSWER_RESPONSE
     assert len(llm.prompts) == 1
 
 
@@ -427,6 +658,13 @@ def test_generation_validates_empty_question_and_missing_llm() -> None:
         assert "max_context_chunks" in str(error)
     else:
         raise AssertionError("Expected prompt config validation error")
+
+    try:
+        PromptConfig(llm_generation_timeout_seconds=0)
+    except ValueError as error:
+        assert "llm_generation_timeout_seconds" in str(error)
+    else:
+        raise AssertionError("Expected prompt timeout validation error")
 
     try:
         NoAnswerConfig(min_context_score=-0.1)

@@ -1,5 +1,6 @@
 from app.rag.local_llm import (
     DEFAULT_LOCAL_LLM_MODEL,
+    LazyLocalHuggingFaceLLMClient,
     LocalHuggingFaceLLMClient,
     LocalLLMConfig,
     LocalLLMModelType,
@@ -126,6 +127,20 @@ def test_local_huggingface_client_rejects_empty_prompts() -> None:
         assert "prompt" in str(error)
     else:
         raise AssertionError("Expected prompt validation error")
+
+
+def test_lazy_local_huggingface_client_rejects_uncached_model(monkeypatch) -> None:
+    monkeypatch.setenv("HF_HOME", "Z:/supportlens-missing-hf-cache")
+    client = LazyLocalHuggingFaceLLMClient(
+        LocalLLMConfig(model_name="missing/model")
+    )
+
+    try:
+        client.generate("Grounded prompt")
+    except RuntimeError as error:
+        assert "not cached" in str(error)
+    else:
+        raise AssertionError("Expected uncached model error")
 
 
 def test_local_llm_config_validates_generation_settings() -> None:

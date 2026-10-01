@@ -92,6 +92,7 @@ def test_query_processor_detects_stage_b_product_aliases() -> None:
 
     netgear = processor.process("How do I update NETGEAR firmware?")
     asus = processor.process("How do I factory reset an ASUS router?")
+    asus_model = processor.process("What are the RT-AX55 specifications?")
     tplink_model = processor.process("How do I set up Archer AX21?")
     openwrt_definition = processor.process("What is OpenWrt?")
 
@@ -99,10 +100,21 @@ def test_query_processor_detects_stage_b_product_aliases() -> None:
     assert netgear.detected_category == "firmware"
     assert asus.detected_product == "ASUS Routers"
     assert asus.detected_category == "troubleshooting"
+    assert asus_model.detected_product == "ASUS RT-AX55"
+    assert asus_model.detected_category == "technical"
     assert tplink_model.detected_product == "TP-Link Archer AX21"
     assert tplink_model.detected_category == "setup"
     assert openwrt_definition.detected_product == "OpenWrt"
     assert openwrt_definition.detected_category == "faq"
+
+
+def test_query_processor_detects_technical_specification_questions() -> None:
+    processor = QueryProcessor()
+
+    processed = processor.process("What are the Archer AX55 hardware specs?")
+
+    assert processed.detected_product == "TP-Link Archer AX55"
+    assert processed.detected_category == "technical"
 
 
 def test_query_processing_retriever_uses_normalized_query_and_inferred_filter() -> None:
@@ -120,6 +132,64 @@ def test_query_processing_retriever_uses_normalized_query_and_inferred_filter() 
     ]
     assert retriever.last_processed_query is not None
     assert retriever.last_processed_query.detected_category == "configuration"
+
+
+def test_query_processing_retriever_falls_back_to_product_family() -> None:
+    class EmptyThenFallbackRetriever(FakeRetriever):
+        def retrieve(self, query: str, *, metadata_filter=None):
+            self.calls.append((query, metadata_filter))
+            if metadata_filter == MetadataFilter(
+                product="TP-Link Routers",
+                category="setup",
+            ):
+                return [
+                    RetrievalResult(
+                        point_id="point-fallback",
+                        score=0.8,
+                        payload={
+                            "chunk_id": "DOC024_C0001",
+                            "document_id": "DOC024",
+                            "text": "TP-Link setup guidance",
+                        },
+                    )
+                ]
+            return []
+
+    base_retriever = EmptyThenFallbackRetriever()
+    retriever = QueryProcessingRetriever(base_retriever)
+
+    results = retriever.retrieve("How do I set up Archer AX55?")
+
+    assert results[0].chunk_id == "DOC024_C0001"
+    assert base_retriever.calls == [
+        (
+            "How do I set up Archer AX55?",
+            MetadataFilter(product="TP-Link Archer AX55", category="setup"),
+        ),
+        (
+            "How do I set up Archer AX55?",
+            MetadataFilter(product="TP-Link Routers", category="setup"),
+        ),
+    ]
+
+
+def test_query_processing_retriever_does_not_fallback_for_explicit_filter() -> None:
+    base_retriever = FakeRetriever()
+    retriever = QueryProcessingRetriever(base_retriever)
+    explicit_filter = MetadataFilter(product="TP-Link Archer AX55")
+
+    results = retriever.retrieve(
+        "How do I set up Archer AX55?",
+        metadata_filter=explicit_filter,
+    )
+
+    assert results[0].chunk_id == "DOC001_C0001"
+    assert base_retriever.calls == [
+        (
+            "How do I set up Archer AX55?",
+            MetadataFilter(product="TP-Link Archer AX55", category="setup"),
+        )
+    ]
 
 
 def test_explicit_metadata_filter_overrides_inferred_values() -> None:

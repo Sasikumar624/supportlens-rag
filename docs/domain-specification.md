@@ -76,7 +76,7 @@ Target product families:
 - Access points and mesh networking devices.
 - Modems, gateways, and edge connectivity devices where documentation fits the same support workflow.
 
-The repository started with OpenWrt documentation as the Stage A seed product because it fits the locked domain and provides real installation, firmware, Wi-Fi, troubleshooting, reset, and recovery documentation. The source registry has now been expanded into a Stage B seed set with multiple official source families: OpenWrt, TP-Link, NETGEAR, and ASUS. OpenWrt is not the full domain; it is one source family inside the broader networking/router/connectivity support domain.
+The repository started with OpenWrt documentation as the Stage A seed product because it fits the locked domain and provides real installation, firmware, Wi-Fi, troubleshooting, reset, and recovery documentation. The source registry has now been expanded into a Stage B+ seed set with multiple official source families: OpenWrt, TP-Link, NETGEAR, and ASUS. OpenWrt is not the full domain; it is one source family inside the broader networking/router/connectivity support domain.
 
 ## Source Quality Requirements
 
@@ -181,9 +181,9 @@ Required evaluation groups:
 
 Production readiness should be measured with retrieval quality, answer quality, citation correctness, refusal behavior, and manual review of user-facing clarity.
 
-## Current Stage B Seed Corpus
+## Current Stage B+ Seed Corpus
 
-The current source registry contains 21 official support sources. It is still a seed corpus, but it is no longer limited to a single product family.
+The current source registry contains 45 official support sources. It is still a seed corpus, but it is no longer limited to a single product family.
 
 Current source families:
 
@@ -206,14 +206,17 @@ Current categories:
 - `configuration`
 - `firmware`
 - `manuals`
+- `technical`
+- `policies`
 
 Current limitation:
 
-- The corpus is broader than the original OpenWrt-only smoke test, but it is still not large enough to claim full production coverage across networking products. It is a realistic Stage B seed set for validating ingestion, cleaning, retrieval, answer generation, citations, no-answer behavior, definitional FAQ answers, multi-product source filtering, and UI behavior inside the locked domain.
+- The corpus is broader than the original OpenWrt-only smoke test and now includes more setup, product-specification, login/access, wireless configuration, warranty, regulatory, and hardware-support sources. It is still not large enough to claim full production coverage across networking products. It is a realistic Stage B+ seed set for validating ingestion, cleaning, retrieval, answer generation, citations, no-answer behavior, definitional FAQ answers, multi-product source filtering, and UI behavior inside the locked domain.
+- Live/current pricing is not treated as static support documentation. Price-range answers require a separate, date-stamped pricing feed or scheduled refresh process with region/currency metadata.
 
 ## Expansion Plan
 
-Stage B expands from the OpenWrt seed set to about 20 coherent support documents across the same domain. The current registry has reached this initial Stage B shape.
+Stage B expanded from the OpenWrt seed set to about 20 coherent support documents across the same domain. The current registry has moved into a Stage B+ shape with 45 official sources.
 
 Recommended next Stage B additions:
 

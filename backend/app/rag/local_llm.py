@@ -1,11 +1,13 @@
 from dataclasses import dataclass
 from enum import StrEnum
+import os
+from pathlib import Path
 from typing import Any
 
 from app.core.config import get_settings
 
 
-DEFAULT_LOCAL_LLM_MODEL = "google/flan-t5-base"
+DEFAULT_LOCAL_LLM_MODEL = "Qwen/Qwen2.5-1.5B-Instruct"
 
 
 class LocalLLMModelType(StrEnum):
@@ -16,7 +18,7 @@ class LocalLLMModelType(StrEnum):
 @dataclass(frozen=True)
 class LocalLLMConfig:
     model_name: str = DEFAULT_LOCAL_LLM_MODEL
-    model_type: LocalLLMModelType = LocalLLMModelType.SEQ2SEQ
+    model_type: LocalLLMModelType = LocalLLMModelType.CAUSAL
     max_new_tokens: int = 256
     temperature: float = 0.0
     do_sample: bool = False
@@ -115,6 +117,46 @@ class LocalHuggingFaceLLMClient:
         if self.config.model_type == LocalLLMModelType.CAUSAL and text.startswith(model_input):
             text = text[len(model_input) :].strip()
         return text
+
+
+class LazyLocalHuggingFaceLLMClient:
+    def __init__(self, config: LocalLLMConfig) -> None:
+        self.config = config
+        self._client: LocalHuggingFaceLLMClient | None = None
+
+    @classmethod
+    def from_settings(cls) -> "LazyLocalHuggingFaceLLMClient":
+        settings = get_settings()
+        return cls(
+            LocalLLMConfig(
+                model_name=settings.llm_model or DEFAULT_LOCAL_LLM_MODEL,
+                model_type=LocalLLMModelType(settings.llm_model_type),
+                max_new_tokens=settings.llm_max_new_tokens,
+                temperature=settings.llm_temperature,
+                do_sample=settings.llm_do_sample,
+            )
+        )
+
+    def generate(self, prompt: str) -> str:
+        if not _is_model_cached(self.config.model_name):
+            raise RuntimeError(
+                f"Local LLM model is not cached: {self.config.model_name}"
+            )
+        if self._client is None:
+            self._client = LocalHuggingFaceLLMClient(self.config)
+        return self._client.generate(prompt)
+
+
+def _is_model_cached(model_name: str) -> bool:
+    cache_root = (
+        os.getenv("HF_HOME")
+        or os.getenv("TRANSFORMERS_CACHE")
+        or str(Path.home() / ".cache" / "huggingface")
+    )
+    hub_root = Path(cache_root) / "hub"
+    model_cache_name = f"models--{model_name.replace('/', '--')}"
+    snapshot_root = hub_root / model_cache_name / "snapshots"
+    return snapshot_root.exists() and any(snapshot_root.iterdir())
 
 
 def _load_local_model(model_name: str, model_type: LocalLLMModelType):

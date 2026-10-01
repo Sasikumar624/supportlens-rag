@@ -49,10 +49,12 @@ class Settings:
     qdrant_api_key: str | None
     qdrant_collection: str
     embedding_model: str
+    dense_retrieval_enabled: bool
     keyword_retrieval_top_k: int
     keyword_retrieval_min_score: float
     hybrid_retrieval_top_k: int
     hybrid_rrf_k: int
+    reranking_enabled: bool
     reranker_model: str
     reranker_candidate_top_k: int
     reranker_final_top_k: int
@@ -62,6 +64,8 @@ class Settings:
     llm_max_new_tokens: int
     llm_temperature: float
     llm_do_sample: bool
+    llm_generation_enabled: bool
+    llm_generation_timeout_seconds: float
     no_answer_min_score: float
     no_answer_min_context_chars: int
 
@@ -85,10 +89,12 @@ def get_settings() -> Settings:
         qdrant_api_key=os.getenv("QDRANT_API_KEY") or None,
         qdrant_collection=os.getenv("QDRANT_COLLECTION", "supportlens_chunks"),
         embedding_model=os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5"),
+        dense_retrieval_enabled=_get_bool("DENSE_RETRIEVAL_ENABLED", False),
         keyword_retrieval_top_k=_get_int("KEYWORD_RETRIEVAL_TOP_K", 5),
         keyword_retrieval_min_score=_get_float("KEYWORD_RETRIEVAL_MIN_SCORE", 0.0),
         hybrid_retrieval_top_k=_get_int("HYBRID_RETRIEVAL_TOP_K", 10),
         hybrid_rrf_k=_get_int("HYBRID_RRF_K", 60),
+        reranking_enabled=_get_bool("RERANKING_ENABLED", False),
         reranker_model=os.getenv(
             "RERANKER_MODEL",
             "cross-encoder/ms-marco-MiniLM-L6-v2",
@@ -101,6 +107,8 @@ def get_settings() -> Settings:
         llm_max_new_tokens=_get_int("LLM_MAX_NEW_TOKENS", 256),
         llm_temperature=_get_float("LLM_TEMPERATURE", 0.0),
         llm_do_sample=_get_bool("LLM_DO_SAMPLE", False),
+        llm_generation_enabled=_get_bool("LLM_GENERATION_ENABLED", False),
+        llm_generation_timeout_seconds=_get_float("LLM_GENERATION_TIMEOUT_SECONDS", 8.0),
         no_answer_min_score=_get_float("NO_ANSWER_MIN_SCORE", 0.35),
         no_answer_min_context_chars=_get_int("NO_ANSWER_MIN_CONTEXT_CHARS", 30),
     )

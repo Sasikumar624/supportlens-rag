@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 
 from app.core.config import Settings, get_settings
-from app.rag.generator import NoAnswerConfig, RAGPipeline
+from app.rag.generator import NoAnswerConfig, PromptConfig, RAGPipeline
 from app.rag.hybrid_retriever import HybridRetrievalConfig, HybridRetriever
 from app.rag.keyword_retriever import QdrantKeywordRetriever
-from app.rag.local_llm import LocalHuggingFaceLLMClient
+from app.rag.local_llm import LazyLocalHuggingFaceLLMClient
 from app.rag.query_processing import QueryProcessingRetriever
 from app.rag.reranker import CrossEncoderReranker, RerankedRetriever, RerankingConfig
 from app.rag.retriever import DenseRetriever
@@ -38,26 +38,42 @@ def build_query_pipeline_from_settings(
     RuntimePipelineConfig.from_settings(settings).validate()
 
     reranking_config = RerankingConfig.from_settings()
-    dense_retriever = DenseRetriever.from_settings(top_k=reranking_config.candidate_top_k)
     keyword_retriever = QdrantKeywordRetriever.from_settings()
-    hybrid_retriever = HybridRetriever(
-        dense_retriever=dense_retriever,
-        keyword_retriever=keyword_retriever,
-        config=HybridRetrievalConfig(
-            top_k=reranking_config.candidate_top_k,
-            rrf_k=settings.hybrid_rrf_k,
-        ),
+    if settings.dense_retrieval_enabled:
+        dense_retriever = DenseRetriever.from_settings(
+            top_k=reranking_config.candidate_top_k
+        )
+        hybrid_retriever = HybridRetriever(
+            dense_retriever=dense_retriever,
+            keyword_retriever=keyword_retriever,
+            config=HybridRetrievalConfig(
+                top_k=reranking_config.candidate_top_k
+                if settings.reranking_enabled
+                else reranking_config.final_top_k,
+                rrf_k=settings.hybrid_rrf_k,
+            ),
+        )
+        base_retriever = (
+            RerankedRetriever(
+                retriever=hybrid_retriever,
+                reranker=CrossEncoderReranker.from_settings(),
+                config=reranking_config,
+            )
+            if settings.reranking_enabled
+            else hybrid_retriever
+        )
+    else:
+        base_retriever = keyword_retriever
+    retriever = QueryProcessingRetriever(base_retriever)
+    llm_client = (
+        LazyLocalHuggingFaceLLMClient.from_settings()
+        if settings.llm_generation_enabled
+        else None
     )
-    reranked_retriever = RerankedRetriever(
-        retriever=hybrid_retriever,
-        reranker=CrossEncoderReranker.from_settings(),
-        config=reranking_config,
-    )
-    retriever = QueryProcessingRetriever(reranked_retriever)
-    llm_client = LocalHuggingFaceLLMClient.from_settings()
 
     return RAGPipeline(
         retriever=retriever,
         llm_client=llm_client,
+        prompt_config=PromptConfig.from_settings(),
         no_answer_config=NoAnswerConfig.from_settings(),
     )

@@ -108,6 +108,43 @@ def test_query_endpoint_returns_generated_answer_and_sources() -> None:
     del app.state.query_pipeline
 
 
+def test_query_endpoint_answers_product_inventory_from_source_registry() -> None:
+    pipeline = FakeQueryPipeline()
+    app.state.query_pipeline = pipeline
+
+    response = client().post(
+        "/api/query",
+        json={"question": "List the products"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert (
+        "The indexed knowledge base currently includes these products:"
+        in body["answer"]
+    )
+    assert "- OpenWrt [1]" in body["answer"]
+    assert "- TP-Link Archer AX21 [2]" in body["answer"]
+    assert "- TP-Link Archer AX55 [3]" in body["answer"]
+    assert "- TP-Link Routers [4]" in body["answer"]
+    assert "- NETGEAR Routers [5]" in body["answer"]
+    assert "- ASUS Routers [6]" in body["answer"]
+    assert "- ASUS RT-AX55 [7]" in body["answer"]
+    assert body["refused"] is False
+    assert [source["product"] for source in body["sources"]] == [
+        "OpenWrt",
+        "TP-Link Archer AX21",
+        "TP-Link Archer AX55",
+        "TP-Link Routers",
+        "NETGEAR Routers",
+        "ASUS Routers",
+        "ASUS RT-AX55",
+    ]
+    assert pipeline.calls == []
+
+    del app.state.query_pipeline
+
+
 def test_query_endpoint_returns_service_unavailable_without_pipeline() -> None:
     if hasattr(app.state, "query_pipeline"):
         del app.state.query_pipeline

@@ -98,6 +98,27 @@ def part(document_id: str = "DOC_TEST") -> LoadedDocumentPart:
     )
 
 
+def multi_chunk_part(document_id: str = "DOC_TEST") -> LoadedDocumentPart:
+    return LoadedDocumentPart(
+        document_id=document_id,
+        title="Router Guide",
+        filename=None,
+        page=1,
+        section="Setup",
+        category="setup",
+        product="Router X",
+        version="v1",
+        language="English",
+        source_url="https://example.com/router",
+        source_type="html",
+        text=(
+            "Connect the WAN cable before setup.\n\n"
+            "Restart the router after lights stabilize.\n\n"
+            "Confirm internet works from laptop."
+        ),
+    )
+
+
 def test_build_index_runs_pipeline_and_upserts_points() -> None:
     client = FakeQdrantClient()
     config = IndexingConfig(
@@ -145,7 +166,9 @@ def test_build_index_batches_upserts() -> None:
         config=config,
         client=client,
         embedder=FakeEmbedder(),
-        document_loader=lambda source_record, local_path: [part(source_record.document_id)],
+        document_loader=lambda source_record, local_path: [
+            multi_chunk_part(source_record.document_id)
+        ],
     )
 
     assert result.points_upserted == 3
