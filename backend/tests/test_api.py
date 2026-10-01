@@ -145,6 +145,36 @@ def test_query_endpoint_answers_product_inventory_from_source_registry() -> None
     del app.state.query_pipeline
 
 
+def test_query_endpoint_uses_conversation_context_for_follow_ups() -> None:
+    pipeline = FakeQueryPipeline()
+    app.state.query_pipeline = pipeline
+
+    response = client().post(
+        "/api/query",
+        json={
+            "question": "How do I set this up?",
+            "conversation_context": [
+                {
+                    "question": "Tell me about Archer AX21",
+                    "answer": "The previous answer discussed TP-Link Archer AX21.",
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["question"] == "How do I set this up?"
+    assert pipeline.calls[0][0] == (
+        "Use this recent conversation only to resolve follow-up references.\n"
+        "Previous question 1: Tell me about Archer AX21\n"
+        "Previous answer 1: The previous answer discussed TP-Link Archer AX21.\n"
+        "Current question: How do I set this up?"
+    )
+
+    del app.state.query_pipeline
+
+
 def test_query_endpoint_returns_service_unavailable_without_pipeline() -> None:
     if hasattr(app.state, "query_pipeline"):
         del app.state.query_pipeline

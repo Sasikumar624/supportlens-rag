@@ -9,6 +9,15 @@ class QueryRequest(BaseModel):
     language: str | None = Field(default=None, max_length=100)
     source_type: str | None = Field(default=None, max_length=50)
     document_id: str | None = Field(default=None, max_length=100)
+    conversation_context: list["ConversationContextTurn"] = Field(
+        default_factory=list,
+        max_length=6,
+    )
+
+
+class ConversationContextTurn(BaseModel):
+    question: str = Field(min_length=1, max_length=1000)
+    answer: str = Field(min_length=1, max_length=1500)
 
 
 class SourceResponse(BaseModel):

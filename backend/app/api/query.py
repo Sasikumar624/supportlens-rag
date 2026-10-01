@@ -1,4 +1,5 @@
 import re
+from dataclasses import replace
 from time import perf_counter
 
 from fastapi import APIRouter, Depends
@@ -43,14 +44,17 @@ def query_support(
     started_at = perf_counter()
     try:
         question = payload.question.strip()
+        retrieval_question = _question_with_conversation_context(payload)
         metadata_filter = _metadata_filter_from_query(payload)
         if metadata_filter is None and _is_product_inventory_question(question):
             generated_answer = _answer_product_inventory(question)
         else:
             generated_answer = pipeline.answer(
-                question,
+                retrieval_question,
                 metadata_filter=metadata_filter,
             )
+            if generated_answer.question != question:
+                generated_answer = replace(generated_answer, question=question)
     except ValueError as error:
         raise bad_request(
             ApiErrorCode.INVALID_METADATA,
@@ -103,6 +107,40 @@ def _validate_query_request(payload: QueryRequest) -> None:
                 f"{field_name} cannot be blank.",
                 field=field_name,
             )
+
+
+def _question_with_conversation_context(payload: QueryRequest) -> str:
+    question = payload.question.strip()
+    context_turns = [
+        turn
+        for turn in payload.conversation_context[-3:]
+        if turn.question.strip() and turn.answer.strip()
+    ]
+    if not context_turns:
+        return question
+
+    context_lines = []
+    for index, turn in enumerate(context_turns, start=1):
+        context_lines.extend(
+            [
+                f"Previous question {index}: {_compact_context_value(turn.question)}",
+                f"Previous answer {index}: {_compact_context_value(turn.answer)}",
+            ]
+        )
+    return "\n".join(
+        [
+            "Use this recent conversation only to resolve follow-up references.",
+            *context_lines,
+            f"Current question: {question}",
+        ]
+    )
+
+
+def _compact_context_value(value: str, *, max_chars: int = 500) -> str:
+    compacted = " ".join(value.strip().split())
+    if len(compacted) <= max_chars:
+        return compacted
+    return compacted[:max_chars].rsplit(" ", 1)[0].rstrip(" .,;:") + "."
 
 
 def _metadata_filter_from_query(payload: QueryRequest) -> MetadataFilter | None:
