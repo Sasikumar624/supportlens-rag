@@ -27,12 +27,26 @@ def test_load_sources_csv_reads_phase_2_registry() -> None:
     repo_root = Path(__file__).resolve().parents[2]
     sources = load_sources_csv(repo_root / "data" / "sources.csv")
 
-    assert len(sources) == 5
+    assert len(sources) == 21
     assert sources[0].document_id == "DOC001"
     assert sources[0].source_type == "html"
     assert {source.source_type for source in sources} == {"html"}
     assert sources[2].document_id == "DOC003"
     assert sources[2].title == "Failsafe mode, factory reset, and recovery mode"
+    assert {source.product for source in sources} >= {
+        "OpenWrt",
+        "TP-Link Routers",
+        "NETGEAR Routers",
+        "ASUS Routers",
+    }
+    assert {source.category for source in sources} >= {
+        "setup",
+        "troubleshooting",
+        "configuration",
+        "firmware",
+        "manuals",
+        "faq",
+    }
 
 
 def test_html_loader_preserves_metadata_and_extracts_text() -> None:
@@ -58,6 +72,31 @@ def test_html_loader_preserves_metadata_and_extracts_text() -> None:
     assert "Press and hold" in parts[0].text
     assert "ignoreMe" not in parts[0].text
     assert parts[0].metadata["source_url"] == "https://example.com/router-guide"
+
+
+def test_html_loader_removes_page_chrome_before_extracting_text() -> None:
+    html = """
+    <html>
+      <body>
+        <main>
+          <nav>Backlinks</nav>
+          <aside>Learn about OpenWrt</aside>
+          <div id="dw__toc">Table of contents</div>
+          <h1>Quick start guide for OpenWrt installation</h1>
+          <p>So you want to install OpenWrt on one of your devices.</p>
+          <p>Have your device model and exact hardware version ready.</p>
+        </main>
+      </body>
+    </html>
+    """
+
+    parts = HtmlLoader().load(make_source(), html=html)
+
+    assert len(parts) == 1
+    assert "Backlinks" not in parts[0].text
+    assert "Learn about OpenWrt" not in parts[0].text
+    assert "Table of contents" not in parts[0].text
+    assert "install OpenWrt on one of your devices" in parts[0].text
 
 
 def test_pdf_loader_returns_one_part_per_text_page(test_workspace: Path) -> None:

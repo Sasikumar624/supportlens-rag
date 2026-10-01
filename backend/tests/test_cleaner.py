@@ -48,3 +48,21 @@ def test_clean_text_collapses_excess_blank_lines() -> None:
     text = "Line one\n\n\n\nLine two"
 
     assert clean_text(text) == "Line one\n\nLine two"
+
+
+def test_clean_text_removes_common_document_navigation_chrome() -> None:
+    text = """
+    Home Documentation
+    Factory reset
+    Backlinks
+    Hold the reset button for ten seconds.
+    Learn about OpenWrt
+    """
+
+    cleaned = clean_text(text)
+
+    assert "Home Documentation" not in cleaned
+    assert "Backlinks" not in cleaned
+    assert "Learn about OpenWrt" not in cleaned
+    assert "Factory reset" in cleaned
+    assert "Hold the reset button" in cleaned

@@ -3,8 +3,10 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
+  ChevronDown,
   CheckCircle2,
   Clock3,
+  Database,
   ExternalLink,
   FileSearch,
   Gauge,
@@ -13,7 +15,6 @@ import {
   RotateCcw,
   Search,
   Send,
-  ShieldCheck,
   SlidersHorizontal,
   Sparkles,
   ThumbsDown,
@@ -33,10 +34,13 @@ type FeedbackState = "idle" | "sending" | "stored" | "failed";
 type HealthState = "checking" | "online" | "offline";
 
 const examples = [
-  "How do I reset OpenWrt when I cannot reach the web UI?",
-  "What should I check first if a router loses internet after a firmware update?",
-  "How can I recover access when DHCP is not assigning an address?"
+  "I can't open routerlogin.net. What else can I try?",
+  "My TP-Link router has no internet. Where do I start?",
+  "ASUS firmware update failed. Is there a rescue mode?",
+  "What is OpenWrt and why would I use it?"
 ];
+
+const quickTopics = ["OpenWrt", "TP-Link", "NETGEAR", "ASUS", "Firmware", "Recovery"];
 
 const filterFields: Array<{
   key: keyof Omit<QueryRequest, "question">;
@@ -79,6 +83,36 @@ function sourceKey(source: SourceResponse): string {
   return `${source.source_id}-${source.chunk_id || source.document_id || sourceLabel(source)}`;
 }
 
+function AnswerContent({ text }: { text: string }) {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const intro = lines.find((line) => !line.startsWith("- "));
+  const bullets = lines
+    .filter((line) => line.startsWith("- "))
+    .map((line) => line.replace(/^-+\s*/, ""));
+  const paragraphs = lines.filter((line) => line !== intro && !line.startsWith("- "));
+
+  if (bullets.length === 0) {
+    return <p className="answer-text">{text}</p>;
+  }
+
+  return (
+    <div className="answer-content">
+      {intro ? <p>{intro}</p> : null}
+      <ul>
+        {bullets.map((bullet) => (
+          <li key={bullet}>{bullet}</li>
+        ))}
+      </ul>
+      {paragraphs.map((paragraph) => (
+        <p key={paragraph}>{paragraph}</p>
+      ))}
+    </div>
+  );
+}
+
 export default function Home() {
   const [question, setQuestion] = useState("");
   const [filters, setFilters] = useState<Omit<QueryRequest, "question">>({});
@@ -89,6 +123,7 @@ export default function Home() {
   const [feedbackComment, setFeedbackComment] = useState("");
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [healthState, setHealthState] = useState<HealthState>("checking");
+  const [showFilters, setShowFilters] = useState(false);
 
   const trimmedQuestion = question.trim();
   const canAsk = trimmedQuestion.length > 0 && !isLoading;
@@ -213,42 +248,38 @@ export default function Home() {
 
         <section className="rail-section">
           <div className="section-heading">
-            <ShieldCheck size={17} aria-hidden="true" />
-            <span>Backend</span>
+            <Database size={17} aria-hidden="true" />
+            <span>Knowledge base</span>
           </div>
           <div className={`health-card ${healthState}`}>
             <span className="health-dot" aria-hidden="true" />
             <div>
               <strong>
                 {healthState === "checking"
-                  ? "Checking"
+                  ? "Checking sources"
                   : healthState === "online"
-                    ? "Online"
-                    : "Offline"}
+                    ? "Ready"
+                    : "Unavailable"}
               </strong>
-              <p>{health ? `${health.app} - ${health.environment}` : "API service"}</p>
+              <p>
+                {healthState === "online"
+                  ? "OpenWrt support articles with cited answers"
+                  : health
+                    ? `${health.app} - ${health.environment}`
+                    : "Answer service"}
+              </p>
             </div>
           </div>
         </section>
 
         <section className="rail-section">
           <div className="section-heading">
-            <SlidersHorizontal size={17} aria-hidden="true" />
-            <span>Filters</span>
-            {activeFilterCount > 0 ? (
-              <span className="count-pill">{activeFilterCount}</span>
-            ) : null}
+            <Sparkles size={17} aria-hidden="true" />
+            <span>Good questions</span>
           </div>
-          <div className="filter-grid">
-            {filterFields.map((field) => (
-              <label key={field.key}>
-                <span>{field.label}</span>
-                <input
-                  value={filters[field.key] || ""}
-                  onChange={(event) => updateFilter(field.key, event.target.value)}
-                  placeholder={field.placeholder}
-                />
-              </label>
+          <div className="topic-list" aria-label="Supported topics">
+            {quickTopics.map((topic) => (
+              <span key={topic}>{topic}</span>
             ))}
           </div>
         </section>
@@ -276,8 +307,8 @@ export default function Home() {
       <section className="workspace" aria-labelledby="page-title">
         <header className="workspace-header">
           <div>
-            <p className="eyebrow">Phase 33</p>
-            <h2 id="page-title">Grounded technical support answers</h2>
+            <p className="eyebrow">Support assistant</p>
+            <h2 id="page-title">Ask an OpenWrt support question</h2>
           </div>
           <button
             type="button"
@@ -313,6 +344,40 @@ export default function Home() {
               </button>
             </div>
           </div>
+          <div className="advanced-controls">
+            <button
+              type="button"
+              className={`filter-toggle ${showFilters ? "open" : ""}`}
+              onClick={() => setShowFilters((current) => !current)}
+            >
+              <SlidersHorizontal size={17} aria-hidden="true" />
+              Narrow sources
+              {activeFilterCount > 0 ? (
+                <span className="count-pill">{activeFilterCount}</span>
+              ) : null}
+              <ChevronDown size={16} aria-hidden="true" />
+            </button>
+            {showFilters ? (
+              <div className="filter-panel">
+                <p>
+                  Use these only when you already know the product, category, or source
+                  you want to search.
+                </p>
+                <div className="filter-grid">
+                  {filterFields.map((field) => (
+                    <label key={field.key}>
+                      <span>{field.label}</span>
+                      <input
+                        value={filters[field.key] || ""}
+                        onChange={(event) => updateFilter(field.key, event.target.value)}
+                        placeholder={field.placeholder}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
         </form>
 
         {error ? (
@@ -326,8 +391,8 @@ export default function Home() {
           <div className="answer-surface">
             <div className="answer-title-row">
               <div>
-                <p className="eyebrow">Answer</p>
-                <h3>{answer ? answer.question : "Ready for a support question"}</h3>
+                <p className="eyebrow">Question</p>
+                <h3>{answer ? answer.question : "Ask a support question"}</h3>
               </div>
               {answer?.refused ? (
                 <span className="state-pill warning">
@@ -353,7 +418,10 @@ export default function Home() {
                 {answer.no_answer_reason ? (
                   <p className="reason">{answer.no_answer_reason}</p>
                 ) : null}
-                <p className="answer-text">{answer.answer}</p>
+                <div className="direct-answer">
+                  <p className="eyebrow">Answer</p>
+                  <AnswerContent text={answer.answer} />
+                </div>
 
                 <dl className="timing-grid">
                   {timing.map((item) => {

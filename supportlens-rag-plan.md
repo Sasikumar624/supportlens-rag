@@ -91,37 +91,46 @@ Public demo
 Resume metrics
 Interview preparation
 
-4. Recommended Domain
-Use one coherent technical-support domain.
-Recommended example:
-Networking / Router / Connectivity Support
-Possible topics:
+4. Locked Domain
+Use one coherent technical-support domain:
+Networking, router, and connectivity support.
+
+The authoritative production domain contract is maintained in:
+docs/domain-specification.md
+
+SupportLens should behave like a support knowledge-base assistant for customer networking equipment and connectivity workflows. It should answer documented questions about router setup, firmware maintenance, Wi-Fi configuration, LAN/WAN configuration, DHCP/DNS, connectivity troubleshooting, reset/recovery procedures, exact identifiers, and related support policies.
+
+Primary production users:
+Home or small-office router users
+Tier-1 support agents
+Network administrators
+Documentation and QA reviewers
+
+In-scope support topics:
 Initial setup
+Installation guidance
 Wi-Fi configuration
-Password changes
+LAN/WAN configuration
+DHCP and DNS
+Firewall and routing configuration
 Factory reset
+Failsafe and recovery
 Firmware upgrades
-LAN configuration
-WAN configuration
-DNS
-Guest networks
-Parental controls
-Security settings
-Device compatibility
-LED indicators
+Device and firmware compatibility
+Model numbers, hardware revisions, firmware versions, IP addresses, and error codes
 Connectivity failures
-Slow internet
-Intermittent connections
-Error codes
-Warranty
-Replacement policies
-Troubleshooting procedures
-Do not mix unrelated domains such as:
-Router manuals
+Slow or intermittent connections
+Warranty, maintenance, and support policies
+
+Out-of-scope domains:
 Healthcare PDFs
-Python documentation
-Car manuals
-The final dataset should feel like a real technical-support knowledge base.
+Vehicle manuals
+Generic programming documentation
+Unrelated consumer electronics
+Medical, legal, or financial advice
+Live network diagnosis that requires telemetry the system does not have
+
+The source registry has expanded beyond the original OpenWrt Stage A smoke test. The current Stage B seed registry includes official OpenWrt, TP-Link, NETGEAR, and ASUS support sources. OpenWrt is not the full domain boundary. The final dataset should feel like a curated technical-support knowledge base, not a random list of URLs.
 
 5. Document Categories
 A possible final distribution:

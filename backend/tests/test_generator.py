@@ -54,6 +54,24 @@ class WeakLLMClient:
         return "Factory reset"
 
 
+class MetadataLeakingLLMClient:
+    def generate(self, prompt: str) -> str:
+        return (
+            "[1] | chunk_id=DOC005_C0005 | document_id=DOC005 | "
+            "title=Upgrading OpenWrt firmware using LuCI | score=0.8404 "
+            "Learn about OpenWrt supported devices."
+        )
+
+
+class PageChromeLeakingLLMClient:
+    def generate(self, prompt: str) -> str:
+        return (
+            "[1] Home Documentation Quick start guide for OpenWrt installation\n\n"
+            "[2] Old revisions Backlinks Back to top x Quick start guide for "
+            "OpenWrt installation So you want to install OpenWrt on one of your devices."
+        )
+
+
 def test_build_grounded_prompt_includes_rules_question_and_context() -> None:
     prompt = build_grounded_prompt(
         "How do I reset the router?",
@@ -132,8 +150,114 @@ def test_rag_pipeline_falls_back_to_extractive_answer_for_weak_generation() -> N
 
     answer = pipeline.answer("How do I reset Router X?")
 
-    assert answer.answer == "[1] Hold the reset button for ten seconds."
+    assert answer.answer == (
+        "Based on the available documentation:\n\n"
+        "- Hold the reset button for ten seconds. [1]"
+    )
     assert answer.sources[0].chunk_id == "DOC_TEST_C0001"
+
+
+def test_rag_pipeline_falls_back_when_generation_leaks_metadata() -> None:
+    pipeline = RAGPipeline(
+        retriever=FakeRetriever(),
+        llm_client=MetadataLeakingLLMClient(),
+    )
+
+    answer = pipeline.answer("Tell me about Router X.")
+
+    assert answer.answer == (
+        "Based on the available documentation:\n\n"
+        "- Hold the reset button for ten seconds. [1]"
+    )
+    assert "chunk_id=" not in answer.answer
+    assert "source_url=" not in answer.answer
+
+
+def test_rag_pipeline_falls_back_when_generation_leaks_page_chrome() -> None:
+    pipeline = RAGPipeline(
+        retriever=FakeRetriever(),
+        llm_client=PageChromeLeakingLLMClient(),
+    )
+
+    answer = pipeline.answer("Guide me through installation.")
+
+    assert answer.answer == (
+        "Based on the available documentation:\n\n"
+        "- Hold the reset button for ten seconds. [1]"
+    )
+    assert "Home Documentation" not in answer.answer
+    assert "Backlinks" not in answer.answer
+
+
+def test_rag_pipeline_fallback_strips_metadata_from_chunk_text() -> None:
+    class MetadataTextRetriever(FakeRetriever):
+        def retrieve(self, query: str, *, metadata_filter=None):
+            return [
+                RetrievalResult(
+                    point_id="point-1",
+                    score=0.91,
+                    payload={
+                        "chunk_id": "DOC_TEST_C0001",
+                        "text": (
+                            "| chunk_id=DOC_TEST_C0001 | document_id=DOC_TEST | "
+                            "title=Router Guide | score=0.9100 "
+                            "Hold the reset button for ten seconds."
+                        ),
+                    },
+                )
+            ]
+
+    pipeline = RAGPipeline(
+        retriever=MetadataTextRetriever(),
+        llm_client=WeakLLMClient(),
+    )
+
+    answer = pipeline.answer("How do I reset Router X?")
+
+    assert answer.answer == (
+        "Based on the available documentation:\n\n"
+        "- Hold the reset button for ten seconds. [1]"
+    )
+    assert "chunk_id=" not in answer.answer
+    assert "document_id=" not in answer.answer
+
+
+def test_rag_pipeline_fallback_removes_document_page_chrome() -> None:
+    class OpenWrtInstallRetriever(FakeRetriever):
+        def retrieve(self, query: str, *, metadata_filter=None):
+            return [
+                RetrievalResult(
+                    point_id="point-1",
+                    score=0.91,
+                    payload={
+                        "chunk_id": "DOC001_C0001",
+                        "title": "Quick start guide for OpenWrt installation",
+                        "text": (
+                            "Home Documentation Quick start guide for OpenWrt "
+                            "installation Old revisions Backlinks Back to top x "
+                            "So you want to install OpenWrt on one of your devices. "
+                            "The following preparation is recommended, before flashing "
+                            "OpenWrt firmware: Don't rush the installation, take your time. "
+                            "If something seems weird during installation, find answers "
+                            "first before continuing. Have your device's precise model "
+                            "name and exact hardware version ready."
+                        ),
+                    },
+                )
+            ]
+
+    pipeline = RAGPipeline(
+        retriever=OpenWrtInstallRetriever(),
+        llm_client=WeakLLMClient(),
+    )
+
+    answer = pipeline.answer("Guide me through the product installation process.")
+
+    assert "Home Documentation" not in answer.answer
+    assert "Backlinks" not in answer.answer
+    assert "Based on the available documentation" in answer.answer
+    assert "install OpenWrt on one of your devices" in answer.answer
+    assert "Don't rush the installation" in answer.answer
 
 
 def test_rag_pipeline_limits_context_chunks() -> None:

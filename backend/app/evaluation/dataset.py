@@ -13,6 +13,7 @@ class QuestionCategory(StrEnum):
     TROUBLESHOOTING = "troubleshooting"
     PROCEDURE = "procedure"
     CONFIGURATION = "configuration"
+    FIRMWARE = "firmware"
     EXACT_TERM = "exact_term"
     MULTI_CHUNK = "multi_chunk"
     MULTI_DOCUMENT = "multi_document"
@@ -34,6 +35,8 @@ class EvaluationQuestion:
     category: QuestionCategory
     answerable: bool
     expected_evidence: list[ExpectedEvidence]
+    expected_answer: str | None = None
+    user_persona: str | None = None
     notes: str | None = None
 
     @classmethod
@@ -52,6 +55,8 @@ class EvaluationQuestion:
             category=QuestionCategory(row["category"]),
             answerable=bool(row["answerable"]),
             expected_evidence=expected_evidence,
+            expected_answer=row.get("expected_answer"),
+            user_persona=row.get("user_persona"),
             notes=row.get("notes"),
         )
         question.validate()

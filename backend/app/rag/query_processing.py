@@ -14,7 +14,17 @@ IP_ADDRESS_PATTERN = re.compile(
 MODEL_PATTERN = re.compile(r"\b[A-Z]{1,5}\d{2,}[A-Z0-9_-]*\b", re.IGNORECASE)
 
 DEFAULT_CATEGORY_ALIASES = {
-    "setup": ("setup", "install", "installation", "quick start", "first steps"),
+    "setup": (
+        "setup",
+        "set up",
+        "install",
+        "installing",
+        "installation",
+        "quick start",
+        "first steps",
+        "getting started",
+        "guide me",
+    ),
     "troubleshooting": (
         "troubleshoot",
         "troubleshooting",
@@ -27,6 +37,23 @@ DEFAULT_CATEGORY_ALIASES = {
     ),
     "configuration": ("configure", "configuration", "wi-fi", "wifi", "wireless"),
     "firmware": ("firmware", "upgrade", "sysupgrade", "luci"),
+    "faq": (
+        "what is",
+        "what are",
+        "define",
+        "definition",
+        "overview",
+        "explain",
+        "tell me about",
+    ),
+}
+
+DEFAULT_PRODUCT_ALIASES = {
+    "TP-Link Archer AX21": ("archer ax21", "ax21"),
+    "TP-Link Archer AX55": ("archer ax55", "ax55"),
+    "TP-Link Routers": ("tp-link", "tplink", "tp link", "archer"),
+    "NETGEAR Routers": ("netgear", "nighthawk", "routerlogin"),
+    "ASUS Routers": ("asus", "asuswrt", "asus router", "asusrouter"),
 }
 
 
@@ -42,10 +69,20 @@ class Retriever(Protocol):
 
 @dataclass(frozen=True)
 class QueryProcessingConfig:
-    known_products: tuple[str, ...] = ("OpenWrt",)
+    known_products: tuple[str, ...] = (
+        "OpenWrt",
+        "TP-Link Archer AX21",
+        "TP-Link Archer AX55",
+        "TP-Link Routers",
+        "NETGEAR Routers",
+        "ASUS Routers",
+    )
     known_versions: tuple[str, ...] = ("current",)
     category_aliases: dict[str, tuple[str, ...]] = field(
         default_factory=lambda: dict(DEFAULT_CATEGORY_ALIASES)
+    )
+    product_aliases: dict[str, tuple[str, ...]] = field(
+        default_factory=lambda: dict(DEFAULT_PRODUCT_ALIASES)
     )
 
     def __post_init__(self) -> None:
@@ -58,6 +95,11 @@ class QueryProcessingConfig:
                 raise ValueError("category aliases cannot contain empty categories")
             if any(not alias.strip() for alias in aliases):
                 raise ValueError("category aliases cannot contain empty aliases")
+        for product, aliases in self.product_aliases.items():
+            if not product.strip():
+                raise ValueError("product aliases cannot contain empty products")
+            if any(not alias.strip() for alias in aliases):
+                raise ValueError("product alias lists cannot contain empty aliases")
 
 
 @dataclass(frozen=True)
@@ -114,9 +156,10 @@ class QueryProcessor:
             original_query=query,
             normalized_query=normalized_query,
             identifiers=detect_identifiers(normalized_query),
-            detected_product=_detect_known_value(
+            detected_product=_detect_product(
                 normalized_query,
                 self.config.known_products,
+                self.config.product_aliases,
             ),
             detected_version=_detect_known_value(
                 normalized_query,
@@ -210,6 +253,23 @@ def _detect_known_value(query: str, known_values: tuple[str, ...]) -> str | None
     for value in known_values:
         if re.search(rf"(?<!\w){re.escape(value.lower())}(?!\w)", query_lower):
             return value
+    return None
+
+
+def _detect_product(
+    query: str,
+    known_products: tuple[str, ...],
+    product_aliases: dict[str, tuple[str, ...]],
+) -> str | None:
+    exact_match = _detect_known_value(query, known_products)
+    if exact_match is not None:
+        return exact_match
+
+    query_lower = query.lower()
+    for product in known_products:
+        for alias in product_aliases.get(product, ()):
+            if re.search(rf"(?<!\w){re.escape(alias.lower())}(?!\w)", query_lower):
+                return product
     return None
 
 

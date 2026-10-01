@@ -126,6 +126,20 @@ def test_chunk_blocks_can_overlap_previous_context() -> None:
     assert chunks[1].block_ids[0] == "DOC_TEST_B0002"
 
 
+def test_chunk_blocks_skips_navigation_only_chunks() -> None:
+    chunks = chunk_blocks(
+        [
+            block(1, "OpenWrt Alternate Directory Search", BlockType.HEADING),
+            block(2, "SSH access for newcomers", BlockType.HEADING),
+            block(3, "Quick start guide article list", BlockType.HEADING),
+            block(4, "Installing OpenWrt development snapshots", BlockType.HEADING),
+        ],
+        ChunkingConfig(target_tokens=50, overlap_blocks=0),
+    )
+
+    assert chunks == []
+
+
 def test_chunking_config_rejects_invalid_values() -> None:
     try:
         ChunkingConfig(target_tokens=0)

@@ -82,6 +82,7 @@ class HtmlLoader:
             element.decompose()
 
         content = _select_main_content(soup)
+        _remove_non_content_elements(content)
         section = _first_heading(content)
         text = clean_text(content.get_text(separator="\n"))
 
@@ -132,6 +133,27 @@ def _select_main_content(soup: BeautifulSoup):
         if content is not None:
             return content
     return soup
+
+
+def _remove_non_content_elements(content) -> None:
+    selectors = [
+        "nav",
+        "aside",
+        "footer",
+        "header",
+        ".breadcrumbs",
+        ".breadcrumb",
+        ".pageId",
+        ".docInfo",
+        ".tools",
+        ".plugin_translation",
+        "#dw__toc",
+        "#dokuwiki__pagetools",
+        "#dokuwiki__aside",
+    ]
+    for selector in selectors:
+        for element in content.select(selector):
+            element.decompose()
 
 
 def _first_heading(content) -> str | None:

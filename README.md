@@ -2,9 +2,12 @@
 
 SupportLens is a production-style technical-support RAG assistant for networking, router, and connectivity support documents.
 
+The locked production domain is defined in [Domain Specification](docs/domain-specification.md). The data registry now contains a Stage B seed corpus with 21 official OpenWrt, TP-Link, NETGEAR, and ASUS support sources inside that domain.
+
 The project starts from a locked Phase 0 requirements document before implementation:
 
 - [Phase 0 Requirements](docs/phase-0-requirements.md)
+- [Domain Specification](docs/domain-specification.md)
 - [Phase 1 Environment Setup](docs/phase-1-environment-setup.md)
 - [Phase 2 Document Collection](docs/phase-2-document-collection.md)
 - [Phase 3 Document Loading](docs/phase-3-document-loading.md)

@@ -7,7 +7,7 @@ Date: 2026-09-29
 
 Phase 33 adds a production-grade frontend for asking technical support questions and reviewing grounded answers from the SupportLens API.
 
-The UI is designed as an operational support console: polished enough for a real user workflow, while still staying inside the existing Phase 33 API surface. Knowledge-base analytics and retrieval debugging are reserved for later phases.
+The UI is designed from the end-user support workflow described in [SupportLens Domain Specification](domain-specification.md). A normal user should experience SupportLens as a networking/router support assistant, not as a backend retrieval console. Knowledge-base analytics and retrieval debugging are reserved for later phases or advanced views.
 
 ## Completed
 
@@ -17,14 +17,15 @@ The UI is designed as an operational support console: polished enough for a real
   - `POST /api/query`
   - `POST /api/feedback`
 - Added environment configuration with `NEXT_PUBLIC_API_BASE_URL`.
-- Built a production-grade SupportLens console with:
+- Built a production-grade SupportLens assistant with:
   - application shell
-  - backend health indicator
+  - knowledge-base readiness indicator
   - question input
-  - metadata filters for product, version, category, language, source type, and document ID
-  - curated example prompts
+  - end-user example prompts based on setup, firmware, Wi-Fi, and recovery intents
+  - supported-topic chips
+  - advanced source narrowing controls hidden by default
   - Ask action
-  - answer rendering
+  - question and answer rendering as separate regions
   - no-answer/refusal indicator
   - source citation inspector
   - source confidence labels
@@ -66,19 +67,32 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 
 ## Role Responsibilities
 
-The frontend role owns the browser experience. It captures the user question, manages optional metadata filters, checks backend health, calls the API, renders answers and citations, shows loading/error/empty/success states, and submits lightweight feedback.
+The frontend role owns the browser experience. It captures the user question, keeps the primary path focused on natural-language support intent, exposes source narrowing only as an advanced control, checks knowledge-base readiness, calls the API, renders answers and citations, shows loading/error/empty/success states, and submits lightweight feedback.
 
 The API role still owns HTTP validation, status codes, response shapes, error contracts, and CORS. The frontend consumes those contracts but does not duplicate backend validation beyond simple empty-question prevention.
 
 The query pipeline role still owns retrieval, reranking, prompt construction, generation, no-answer handling, and citations. The frontend only displays the pipeline result returned by `POST /api/query`.
 
-The source display role presents enough citation metadata for users to inspect where an answer came from: document label, section, document ID, product, page when available, source URL, score, and confidence label.
+The source display role presents enough citation metadata for users to inspect where an answer came from: document label, section, document ID, product, page when available, source URL, score, and confidence label. These details should support trust and verification without replacing the answer itself.
 
 The feedback role maps UI actions into the existing rating contract. Helpful submits rating `5`; not helpful submits rating `1`. Optional comments are passed through the existing feedback schema.
 
 The configuration role keeps backend location outside the code through `NEXT_PUBLIC_API_BASE_URL`, so local and deployed environments can point at different API hosts.
 
-The design-system role keeps controls consistent: icon buttons for actions, compact filters, clear status pills, bounded surfaces, responsive layout, and stable dimensions for repeated source cards and metric tiles.
+The design-system role keeps controls consistent: icon buttons for actions, clear status pills, readable answer typography, responsive layout, stable dimensions for repeated source cards and metric tiles, and progressive disclosure for advanced filters.
+
+## Domain UX Rules
+
+The default UI should avoid exposing backend implementation details such as chunk IDs, payloads, vector search, source type, or document ID in the primary interaction path.
+
+The default UI should lead with:
+
+- a natural-language support question
+- examples that match real networking/router support intents
+- a direct answer
+- citations for verification
+
+Advanced controls may expose product, version, category, language, source type, and document ID filters, but they should remain secondary because most end users do not think in backend metadata.
 
 ## Current Limits
 

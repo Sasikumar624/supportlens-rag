@@ -19,18 +19,43 @@ SupportLens is not a general chatbot. It is a support assistant for trusted prod
 
 Initial domain: Networking, router, and connectivity support.
 
-This domain is selected because it naturally includes:
+The detailed domain contract is maintained in [SupportLens Domain Specification](domain-specification.md). Phase 0 locks the product boundary; the domain specification expands that boundary into users, source requirements, metadata expectations, evaluation coverage, and UI implications.
 
-- Product manuals
+Production framing:
+
+SupportLens should behave like a support knowledge-base assistant for customer networking equipment and connectivity workflows. It should help users and support agents answer documented questions about router setup, firmware maintenance, local network configuration, Wi-Fi configuration, connectivity troubleshooting, recovery procedures, and related product-support policies.
+
+Primary users:
+
+- Home or small-office router users who need clear setup and troubleshooting guidance
+- Tier-1 support agents who need fast cited answers while helping customers
+- Network administrators who need quick references for firmware, Wi-Fi, LAN/WAN, and recovery tasks
+- Documentation or QA reviewers who need to evaluate support coverage
+
+In-scope support areas:
+
+- Product manuals and user guides
 - Setup and installation guides
-- Wi-Fi and LAN/WAN configuration documents
-- Firmware update instructions
-- Troubleshooting procedures
-- Error codes and model numbers
+- Wi-Fi, LAN, WAN, DHCP, DNS, firewall, and routing configuration documents
+- Firmware update, sysupgrade, release, and migration guidance
+- Troubleshooting procedures for connectivity, access loss, upgrade failures, and reset/recovery workflows
+- Error codes, model numbers, hardware revisions, firmware versions, and IP-address-related support references
 - FAQ/help articles
-- Warranty and support policies
+- Warranty, support, maintenance, and service-policy documents
+
+Out-of-scope areas:
+
+- Medical, legal, financial, vehicle, or unrelated consumer-electronics advice
+- Generic programming documentation unrelated to indexed networking support documents
+- Live device telemetry or network diagnosis that the system cannot observe
+- Security exploitation, credential bypass, or unsafe device access guidance
+- Product claims or recommendations not supported by indexed evidence
 
 The first implementation should not mix unrelated domains such as healthcare, vehicle manuals, generic programming docs, or unrelated consumer electronics.
+
+Current seed corpus:
+
+The current Stage A dataset uses official OpenWrt documentation because it is a realistic seed product inside the locked domain. OpenWrt is not the entire domain; it is the first source family used to validate ingestion, cleaning, retrieval, grounded generation, citations, evaluation, and frontend behavior.
 
 ## Dataset Scope
 
@@ -236,4 +261,3 @@ Phase 0 is complete when:
 - Initial technology stack is defined
 - Public-demo expectations are defined
 - The next implementation phase can begin without ambiguity
-

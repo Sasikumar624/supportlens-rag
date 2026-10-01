@@ -8,11 +8,23 @@ _BROKEN_IDENTIFIER_PATTERN = re.compile(
 _BROKEN_NUMBER_PATTERN = re.compile(r"\b([A-Z]{2,}|ERR|ERROR|FW|HTTP)\s*\n\s*(\d+[A-Z0-9_.-]*)\b")
 _HYPHENATED_LINE_BREAK_PATTERN = re.compile(r"(?<=[A-Za-z0-9])-\n(?=[A-Za-z0-9])")
 _SOFT_LINE_BREAK_PATTERN = re.compile(r"(?<=[a-z0-9,;:])\n(?=[a-z0-9(])")
+_DOKUWIKI_CHROME_LINES = {
+    "home",
+    "documentation",
+    "home documentation",
+    "old revisions",
+    "backlinks",
+    "back to top",
+    "back to top x",
+    "trace:",
+}
 
 
 def clean_text(text: str) -> str:
     text = normalize_line_endings(text)
     text = remove_control_characters(text)
+    text = remove_replacement_characters(text)
+    text = remove_navigation_chrome(text)
     text = repair_hyphenated_line_breaks(text)
     text = repair_broken_technical_identifiers(text)
     text = repair_soft_line_breaks(text)
@@ -36,6 +48,26 @@ def remove_control_characters(text: str) -> str:
         else:
             characters.append(character)
     return "".join(characters)
+
+
+def remove_replacement_characters(text: str) -> str:
+    return text.replace("\ufffd", " ").replace("Ã", " ").replace("×", " ")
+
+
+def remove_navigation_chrome(text: str) -> str:
+    lines = []
+    for line in text.split("\n"):
+        normalized = re.sub(r"\s+", " ", line).strip()
+        chrome_key = normalized.lower().strip("×x ")
+        if not normalized:
+            lines.append(line)
+            continue
+        if chrome_key in _DOKUWIKI_CHROME_LINES:
+            continue
+        if chrome_key.startswith("learn about ") and len(chrome_key.split()) <= 5:
+            continue
+        lines.append(line)
+    return "\n".join(lines)
 
 
 def repair_hyphenated_line_breaks(text: str) -> str:

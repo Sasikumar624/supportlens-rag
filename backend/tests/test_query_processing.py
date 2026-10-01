@@ -87,6 +87,24 @@ def test_query_processor_supports_custom_products_and_categories() -> None:
     assert processed.detected_category == "troubleshooting"
 
 
+def test_query_processor_detects_stage_b_product_aliases() -> None:
+    processor = QueryProcessor()
+
+    netgear = processor.process("How do I update NETGEAR firmware?")
+    asus = processor.process("How do I factory reset an ASUS router?")
+    tplink_model = processor.process("How do I set up Archer AX21?")
+    openwrt_definition = processor.process("What is OpenWrt?")
+
+    assert netgear.detected_product == "NETGEAR Routers"
+    assert netgear.detected_category == "firmware"
+    assert asus.detected_product == "ASUS Routers"
+    assert asus.detected_category == "troubleshooting"
+    assert tplink_model.detected_product == "TP-Link Archer AX21"
+    assert tplink_model.detected_category == "setup"
+    assert openwrt_definition.detected_product == "OpenWrt"
+    assert openwrt_definition.detected_category == "faq"
+
+
 def test_query_processing_retriever_uses_normalized_query_and_inferred_filter() -> None:
     base_retriever = FakeRetriever()
     retriever = QueryProcessingRetriever(base_retriever)
@@ -144,3 +162,10 @@ def test_query_processing_validates_inputs() -> None:
         assert "aliases" in str(error)
     else:
         raise AssertionError("Expected category alias validation error")
+
+    try:
+        QueryProcessingConfig(product_aliases={"TP-Link Routers": (" ",)})
+    except ValueError as error:
+        assert "product alias" in str(error)
+    else:
+        raise AssertionError("Expected product alias validation error")

@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -300,25 +301,40 @@ def _needs_extractive_fallback(answer: str) -> bool:
     clean_answer = " ".join(answer.strip().split())
     if len(clean_answer.split()) < 8:
         return True
+    if _contains_metadata_leak(clean_answer):
+        return True
+    if _contains_page_chrome(clean_answer):
+        return True
     return "[" not in clean_answer or "]" not in clean_answer
 
 
 def _extractive_answer(context_chunks: list[RetrievalResult]) -> str:
-    lines = []
+    bullets = []
+    seen = set()
     for index, result in enumerate(context_chunks, start=1):
-        text = _compact_context_text(result.text)
-        if not text:
-            continue
-        lines.append(f"[{index}] {text}")
-        if len(lines) >= 3:
+        for sentence in _readable_context_sentences(result.text):
+            normalized = sentence.lower()
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            bullets.append(f"- {sentence} [{index}]")
+            if len(bullets) >= 5:
+                break
+        if len(bullets) >= 5:
             break
-    if not lines:
+    if not bullets:
         return DEFAULT_NO_ANSWER_RESPONSE
-    return "\n\n".join(lines)
+    return "\n".join(
+        [
+            "Based on the available documentation:",
+            "",
+            *bullets,
+        ]
+    )
 
 
 def _compact_context_text(text: str, *, max_chars: int = 450) -> str:
-    compacted = " ".join(text.strip().split())
+    compacted = _strip_metadata_noise(" ".join(text.strip().split()))
     if not compacted:
         return ""
     if len(compacted) <= max_chars:
@@ -326,6 +342,143 @@ def _compact_context_text(text: str, *, max_chars: int = 450) -> str:
 
     truncated = compacted[:max_chars].rsplit(" ", 1)[0].rstrip(" .,;:")
     return f"{truncated}."
+
+
+def _readable_context_sentences(text: str) -> list[str]:
+    cleaned = _strip_metadata_noise(" ".join(text.strip().split()))
+    cleaned = _strip_page_chrome(cleaned)
+    if not cleaned:
+        return []
+
+    candidates = re.split(r"(?<=[.!?])\s+", cleaned)
+    sentences = []
+    for candidate in candidates:
+        sentence = _clean_sentence(candidate)
+        if not _is_useful_sentence(sentence):
+            continue
+        sentences.append(_compact_context_text(sentence, max_chars=260))
+        if len(sentences) >= 5:
+            break
+    return sentences
+
+
+def _strip_page_chrome(text: str) -> str:
+    replacements = [
+        "Home Documentation",
+        "Old revisions",
+        "Backlinks",
+        "Back to top",
+        "Back to top x",
+        "Back to top ×",
+        "Learn about OpenWrt",
+    ]
+    cleaned = text
+    for value in replacements:
+        cleaned = cleaned.replace(value, " ")
+    cleaned = re.sub(r"\bQuick start guide for OpenWrt installation\b", " ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    return cleaned.strip()
+
+
+def _clean_sentence(text: str) -> str:
+    sentence = text.strip(" -|")
+    sentence = re.sub(r"\s+", " ", sentence)
+    return sentence
+
+
+def _is_useful_sentence(sentence: str) -> bool:
+    if len(sentence.split()) < 6:
+        return False
+
+    lowered = sentence.lower()
+    noisy_phrases = [
+        "old revisions",
+        "backlinks",
+        "back to top",
+        "home documentation",
+        "old openwrt wiki",
+        "legacy information",
+        "article list",
+        "alternate directory search",
+        "starter faq",
+        "ssh access for newcomers",
+        "development snapshots",
+        "browse this site",
+        "if you have any questions",
+        "feel free to ask",
+    ]
+    return not any(phrase in lowered for phrase in noisy_phrases)
+
+
+_METADATA_KEY_PATTERN = re.compile(
+    r"\b(?:chunk_id|document_id|title|category|product|version|section|"
+    r"source_url|score|page)="
+)
+_SOURCE_METADATA_PATTERN = re.compile(r"\bSource \[\d+\]\b")
+
+
+def _contains_metadata_leak(answer: str) -> bool:
+    return bool(
+        _METADATA_KEY_PATTERN.search(answer)
+        or _SOURCE_METADATA_PATTERN.search(answer)
+    )
+
+
+def _contains_page_chrome(answer: str) -> bool:
+    lowered = answer.lower()
+    page_chrome = [
+        "home documentation",
+        "old revisions",
+        "backlinks",
+        "back to top",
+        "learn about openwrt learn about openwrt",
+    ]
+    return any(value in lowered for value in page_chrome)
+
+
+def _strip_metadata_noise(text: str) -> str:
+    if not text:
+        return ""
+
+    cleaned = text
+    if "|" in cleaned:
+        cleaned = _strip_pipe_metadata(cleaned)
+
+    cleaned = _METADATA_KEY_PATTERN.sub("", cleaned)
+    cleaned = _SOURCE_METADATA_PATTERN.sub("", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    return cleaned.strip(" |")
+
+
+def _strip_pipe_metadata(text: str) -> str:
+    pieces = []
+    metadata_keys = {
+        "chunk_id",
+        "document_id",
+        "title",
+        "category",
+        "product",
+        "version",
+        "section",
+        "source_url",
+        "score",
+        "page",
+    }
+    for piece in text.split("|"):
+        stripped = piece.strip()
+        if not stripped:
+            continue
+
+        key, separator, value = stripped.partition("=")
+        if separator and key in metadata_keys:
+            if key == "score":
+                score_parts = value.split(maxsplit=1)
+                if len(score_parts) == 2:
+                    pieces.append(score_parts[1])
+            continue
+        pieces.append(stripped)
+
+    return " ".join(pieces)
 
 
 def _no_answer_reason(

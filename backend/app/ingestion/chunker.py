@@ -97,6 +97,9 @@ def _append_chunk(chunks: list[Chunk], blocks: list[StructuredBlock]) -> None:
     first = blocks[0]
     chunk_index = len(chunks) + 1
     text = _join_blocks(blocks)
+    if _is_low_value_chunk(text):
+        return
+
     block_types = [block.block_type.value for block in blocks]
 
     chunks.append(
@@ -140,6 +143,28 @@ def _join_blocks(blocks: list[StructuredBlock]) -> str:
 
 def _count_tokens(text: str) -> int:
     return len(re.findall(r"\S+", text))
+
+
+def _is_low_value_chunk(text: str) -> bool:
+    compacted = " ".join(text.split())
+    if not compacted:
+        return True
+
+    token_count = _count_tokens(compacted)
+    if token_count < 4:
+        return True
+
+    lowered = compacted.lower()
+    navigation_phrases = [
+        "alternate directory search",
+        "quick start guide article list",
+        "openwrt starter faq",
+        "ssh access for newcomers",
+        "installing openwrt development snapshots",
+        "openwrt forum",
+        "user guide section",
+    ]
+    return any(phrase in lowered for phrase in navigation_phrases)
 
 
 def _first_non_none_page(blocks: list[StructuredBlock]) -> int | None:

@@ -23,6 +23,8 @@ def test_load_evaluation_dataset_validates_seed_dataset() -> None:
     assert any(not question.answerable for question in questions)
     assert QuestionCategory.PROCEDURE in {question.category for question in questions}
     assert QuestionCategory.OUT_OF_DOMAIN in {question.category for question in questions}
+    assert any(question.expected_answer for question in questions)
+    assert any(question.user_persona for question in questions)
 
 
 def test_dataset_summary_counts_categories() -> None:
@@ -34,6 +36,21 @@ def test_dataset_summary_counts_categories() -> None:
     assert summary["total"] == len(questions)
     assert summary["answerable_count"] + summary["unanswerable_count"] == len(questions)
     assert summary["troubleshooting"] >= 1
+
+
+def test_evaluation_dataset_includes_production_style_vendor_questions() -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    questions = load_evaluation_dataset(repo_root / "evaluation" / "dataset.json")
+
+    question_text = " ".join(question.question for question in questions).lower()
+    expected_answers = [question.expected_answer or "" for question in questions]
+
+    assert "netgear" in question_text
+    assert "asus" in question_text
+    assert "tp-link" in question_text
+    assert "what is openwrt" in question_text
+    assert any("cannot see the user's live router state" in answer for answer in expected_answers)
+    assert any("unauthorized access" in answer for answer in expected_answers)
 
 
 def test_evaluation_dataset_rejects_duplicate_ids(test_workspace: Path) -> None:
